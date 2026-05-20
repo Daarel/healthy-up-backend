@@ -1,12 +1,46 @@
 import { useNavigate } from "react-router-dom";
-import { useRef } from "react";
-import { ArrowRight } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useNavigateWithTransition } from "../lib/useNavigateWithTransition";
+
+const REGISTER_KEY = "healthyup:register";
 
 export default function OnboardingStep1() {
   const navigate = useNavigate();
   const go = useNavigateWithTransition();
   const panelRef = useRef(null);
+
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const next = {};
+    if (!username.trim()) next.username = "Nama tidak boleh kosong.";
+    else if (username.trim().length < 3) next.username = "Nama minimal 3 karakter.";
+    if (!email.trim()) next.email = "Email tidak boleh kosong.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      next.email = "Format email tidak valid.";
+    if (!password) next.password = "Password tidak boleh kosong.";
+    else if (password.length < 8) next.password = "Password minimal 8 karakter.";
+    return next;
+  };
+
+  const handleNext = () => {
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    // Simpan data register ke sessionStorage agar bisa diakses di Step 5
+    sessionStorage.setItem(
+      REGISTER_KEY,
+      JSON.stringify({ username: username.trim(), email: email.trim(), password })
+    );
+    navigate("/onboarding/2");
+  };
 
   return (
     <div className="h-screen flex bg-[var(--color-bg)] overflow-hidden">
@@ -36,41 +70,93 @@ export default function OnboardingStep1() {
 
           {/* Form */}
           <div className="space-y-5">
+            {/* Username */}
             <div>
               <label className="block text-sm font-semibold text-[#191c20] mb-2 font-lexend">
-                Nama Lengkap
+                Nama Pengguna
               </label>
               <input
                 type="text"
-                placeholder="Masukkan nama lengkap Anda"
-                className="w-full px-4 py-3 rounded-xl border border-[#c1c9bf] bg-white focus:outline-none focus:ring-2 focus:ring-[#006e2f] focus:border-transparent font-jakarta"
+                placeholder="Masukkan nama pengguna Anda"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setErrors((prev) => ({ ...prev, username: undefined }));
+                }}
+                className={`w-full px-4 py-3 rounded-xl border ${
+                  errors.username
+                    ? "border-red-400 focus:ring-red-300"
+                    : "border-[#c1c9bf] focus:ring-[#006e2f]"
+                } bg-white focus:outline-none focus:ring-2 focus:border-transparent font-jakarta`}
               />
+              {errors.username && (
+                <p className="mt-1.5 text-xs text-red-500 font-jakarta">{errors.username}</p>
+              )}
             </div>
 
+            {/* Email */}
             <div>
               <label className="block text-sm font-semibold text-[#191c20] mb-2 font-lexend">
                 Email
               </label>
               <input
                 type="email"
+                inputMode="email"
+                autoComplete="email"
                 placeholder="nama@email.com"
-                className="w-full px-4 py-3 rounded-xl border border-[#c1c9bf] bg-white focus:outline-none focus:ring-2 focus:ring-[#006e2f] focus:border-transparent font-jakarta"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                className={`w-full px-4 py-3 rounded-xl border ${
+                  errors.email
+                    ? "border-red-400 focus:ring-red-300"
+                    : "border-[#c1c9bf] focus:ring-[#006e2f]"
+                } bg-white focus:outline-none focus:ring-2 focus:border-transparent font-jakarta`}
               />
+              {errors.email && (
+                <p className="mt-1.5 text-xs text-red-500 font-jakarta">{errors.email}</p>
+              )}
             </div>
 
+            {/* Password */}
             <div>
               <label className="block text-sm font-semibold text-[#191c20] mb-2 font-lexend">
                 Password
               </label>
-              <input
-                type="password"
-                placeholder="Minimal 8 karakter"
-                className="w-full px-4 py-3 rounded-xl border border-[#c1c9bf] bg-white focus:outline-none focus:ring-2 focus:ring-[#006e2f] focus:border-transparent font-jakarta"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Minimal 8 karakter"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErrors((prev) => ({ ...prev, password: undefined }));
+                  }}
+                  className={`w-full px-4 py-3 pr-12 rounded-xl border ${
+                    errors.password
+                      ? "border-red-400 focus:ring-red-300"
+                      : "border-[#c1c9bf] focus:ring-[#006e2f]"
+                  } bg-white focus:outline-none focus:ring-2 focus:border-transparent font-jakarta`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6d7b6c] hover:text-[#191c20] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-1.5 text-xs text-red-500 font-jakarta">{errors.password}</p>
+              )}
             </div>
 
             <button
-              onClick={() => navigate("/onboarding/2")}
+              onClick={handleNext}
               className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2"
             >
               Lanjutkan
@@ -96,7 +182,7 @@ export default function OnboardingStep1() {
 
       {/* Right Side - Image */}
       <div className="hidden lg:block lg:w-1/2 p-6 bg-[#e5eeff]">
-        <div className="h-full  overflow-hidden relative">
+        <div className="h-full overflow-hidden relative">
           <img
             src="/public/onboarding/1.jpg"
             alt="Fitness"

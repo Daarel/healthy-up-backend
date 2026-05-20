@@ -13,7 +13,11 @@ import {
   Flame,
   Clock,
   Star,
+  Loader2,
 } from "lucide-react";
+import { authApi } from "../lib/api";
+
+const REGISTER_KEY = "healthyup:register";
 
 // Tugas harian hari pertama yang "di-generate AI"
 const AI_DAILY_TASKS = [
@@ -56,6 +60,8 @@ export default function OnboardingStep5({
   const [phase, setPhase] = useState("loading"); // "loading" | "ready"
   const [typingIndex, setTypingIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("tugas");
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerError, setRegisterError] = useState("");
 
   // Simulasi AI processing: ganti teks setiap STEP_DELAY ms, lalu tampilkan hasil
   useEffect(() => {
@@ -277,12 +283,44 @@ export default function OnboardingStep5({
               Tugas dan jadwal akan diperbarui AI setiap hari sesuai progresmu!
             </p>
 
+            {registerError && (
+              <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 font-jakarta mb-4">
+                {registerError}
+              </div>
+            )}
+
             <button
-              onClick={() => navigate("/dashboard")}
-              className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2"
+              onClick={async () => {
+                setRegisterError("");
+                setIsRegistering(true);
+                try {
+                  const raw = sessionStorage.getItem(REGISTER_KEY);
+                  if (!raw) {
+                    // Tidak ada data register — arahkan kembali ke step 1
+                    navigate("/onboarding/1");
+                    return;
+                  }
+                  const { username, email, password } = JSON.parse(raw);
+                  await authApi.register(username, email, password);
+                  sessionStorage.removeItem(REGISTER_KEY);
+                  navigate("/dashboard");
+                } catch (err) {
+                  setRegisterError(err.message || "Gagal membuat akun. Coba lagi.");
+                } finally {
+                  setIsRegistering(false);
+                }
+              }}
+              disabled={isRegistering}
+              className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Mulai Perjalanan
-              
+              {isRegistering ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Membuat akun...
+                </>
+              ) : (
+                "Mulai Perjalanan"
+              )}
             </button>
 
             <div className="h-6" />

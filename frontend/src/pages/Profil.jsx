@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Edit2,
   Star,
@@ -20,6 +21,7 @@ import {
 import Navbar from "../components/Navbar";
 import WeightInputModal from "../components/WeightInputModal";
 import Streak from "../components/ui/streak";
+import { authApi } from "../lib/api";
 
 // Data riwayat berat awal (hardcoded sebagai data historis)
 const INITIAL_WEIGHT_LOG = [
@@ -32,11 +34,25 @@ const INITIAL_WEIGHT_LOG = [
 ];
 
 export default function Profile() {
+  const navigate = useNavigate();
   const [chartPeriod, setChartPeriod] = useState("mingguan");
   const [darkMode, setDarkMode] = useState(false);
   const [weightLog, setWeightLog] = useState(INITIAL_WEIGHT_LOG);
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await authApi.logout();
+    } catch {
+      // Tetap logout dari sisi client meski server error
+    } finally {
+      setIsLoggingOut(false);
+      navigate("/login");
+    }
+  };
 
   const handleWeightSuccess = (value, note) => {
     const today = new Date().toISOString().split("T")[0];
@@ -341,9 +357,15 @@ export default function Profile() {
               
 
               {/* Logout */}
-              <button className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-orange-50 transition-colors text-left">
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-orange-50 transition-colors text-left disabled:opacity-60"
+              >
                 <LogOut className="w-5 h-5 text-orange-500 flex-shrink-0" />
-                <span className="flex-1 font-jakarta text-orange-600">Keluar</span>
+                <span className="flex-1 font-jakarta text-orange-600">
+                  {isLoggingOut ? "Keluar..." : "Keluar"}
+                </span>
                 <ChevronRight className="w-4 h-4 text-orange-300" />
               </button>
 
