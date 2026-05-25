@@ -119,7 +119,7 @@ export default function AdminUsers() {
                       <td className="px-4 py-3 text-gray-600">{user.email}</td>
                       <td className="px-4 py-3 text-gray-600">{user.level}</td>
                       <td className="px-4 py-3">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
+                        <span className="inline-block  text-xs ">
                           {user.rankTitle}
                         </span>
                       </td>
