@@ -13,10 +13,13 @@ import Tugas from "./pages/Tugas";
 import Hadiah from "./pages/Hadiah";
 import Profil from "./pages/Profil";
 
+
+
 function App() {
   return (
     <Router>
       <Routes>
+        {/* User routes */}
         <Route path="/" element={<Navigate to="/onboarding/1" replace />} />
         <Route path="/onboarding/1" element={<OnboardingStep1 />} />
         <Route path="/onboarding/2" element={<OnboardingStep2 />} />
@@ -31,6 +34,10 @@ function App() {
         <Route path="/tugas" element={<Tugas />} />
         <Route path="/hadiah" element={<Hadiah />} />
         <Route path="/profil" element={<Profil />} />
+
+        {/* Admin routes */}
+       
+   
       </Routes>
     </Router>
   );
