@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { authApi } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 const REGISTER_KEY = "healthyup:register";
 
@@ -57,6 +58,7 @@ export default function OnboardingStep5({
   finalDelay = DEFAULT_FINAL_DELAY,
 }) {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [phase, setPhase] = useState("loading"); // "loading" | "ready"
   const [typingIndex, setTypingIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("tugas");
@@ -301,7 +303,8 @@ export default function OnboardingStep5({
                     return;
                   }
                   const { username, email, password } = JSON.parse(raw);
-                  await authApi.register(username, email, password);
+                  const res = await authApi.register(username, email, password);
+                  setUser(res.data.user);
                   sessionStorage.removeItem(REGISTER_KEY);
                   navigate("/dashboard");
                 } catch (err) {

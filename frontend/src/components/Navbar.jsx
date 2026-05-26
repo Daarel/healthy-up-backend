@@ -1,13 +1,25 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, ClipboardList, Trophy, UserCircle, LogOut } from "lucide-react";
 import Logo from "./ui/logo";
+import { authApi } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setUser } = useAuth();
 
-  const isActive = (path) => {
-    return location.pathname === path;
+  const isActive = (path) => location.pathname === path;
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // tetap logout dari sisi client meski server error
+    } finally {
+      setUser(null);
+      navigate("/login");
+    }
   };
 
   return (
@@ -70,7 +82,7 @@ export default function Navbar() {
 
         <div>
           <button 
-            onClick={() => navigate("/login")}
+            onClick={handleLogout}
             className="w-full flex items-center gap-4 px-4 py-3 text-[#ba1a1a] hover:opacity-80 transition-opacity"
           >
             <LogOut className="w-5 h-5" />

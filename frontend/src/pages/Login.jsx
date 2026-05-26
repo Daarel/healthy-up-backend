@@ -4,10 +4,12 @@ import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import Logo from "../components/ui/logo";
 import { useNavigateWithTransition } from "../lib/useNavigateWithTransition";
 import { authApi } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
   const go = useNavigateWithTransition();
+  const { setUser } = useAuth();
   const panelRef = useRef(null);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -39,7 +41,8 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await authApi.login(email, password);
+      const res = await authApi.login(email, password);
+      setUser(res.data.user);
       navigate("/dashboard");
     } catch (err) {
       setServerError(err.message);

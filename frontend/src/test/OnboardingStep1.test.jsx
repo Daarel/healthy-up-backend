@@ -31,14 +31,14 @@ describe('OnboardingStep1 Page', () => {
     expect(screen.getByText(/Mulai perjalanan kesehatan Anda/i)).toBeInTheDocument();
   });
 
-  it('menampilkan label Nama Lengkap', () => {
+  it('menampilkan label Nama Pengguna', () => {
     renderStep1();
-    expect(screen.getByText('Nama Lengkap')).toBeInTheDocument();
+    expect(screen.getByText('Nama Pengguna')).toBeInTheDocument();
   });
 
-  it('menampilkan input Nama Lengkap', () => {
+  it('menampilkan input Nama Pengguna', () => {
     renderStep1();
-    expect(screen.getByPlaceholderText('Masukkan nama lengkap Anda')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Masukkan nama pengguna Anda')).toBeInTheDocument();
   });
 
   it('menampilkan label Email', () => {
@@ -76,9 +76,9 @@ describe('OnboardingStep1 Page', () => {
     expect(screen.getByText('Masuk')).toBeInTheDocument();
   });
 
-  it('dapat mengetik di input Nama Lengkap', () => {
+  it('dapat mengetik di input Nama Pengguna', () => {
     renderStep1();
-    const input = screen.getByPlaceholderText('Masukkan nama lengkap Anda');
+    const input = screen.getByPlaceholderText('Masukkan nama pengguna Anda');
     fireEvent.change(input, { target: { value: 'John Doe' } });
     expect(input.value).toBe('John Doe');
   });

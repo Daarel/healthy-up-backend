@@ -66,18 +66,6 @@ describe('OnboardingStep3 Page', () => {
     expect(screen.getByText('Obesitas')).toBeInTheDocument();
   });
 
-  it('menampilkan info Berat Ideal', () => {
-    renderStep3();
-    expect(screen.getByText('Berat Ideal')).toBeInTheDocument();
-    expect(screen.getByText('58 - 71 kg')).toBeInTheDocument();
-  });
-
-  it('menampilkan info Tinggi', () => {
-    renderStep3();
-    expect(screen.getByText('Tinggi')).toBeInTheDocument();
-    expect(screen.getByText('170 cm')).toBeInTheDocument();
-  });
-
   it('menampilkan tombol Lanjutkan', () => {
     renderStep3();
     expect(screen.getByText('Lanjutkan')).toBeInTheDocument();

@@ -4,15 +4,30 @@ import {
   BadgeCheck, 
   Gift, 
   CheckCircle2, 
-  X
+  X,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Streak from "../components/ui/streak";
+import RedeemSuccessModal from "../components/RedeemSuccessModal";
 
 export default function Hadiah() {
   const [activeTab, setActiveTab] = useState("semua");
   const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [redeemedVoucher, setRedeemedVoucher] = useState(null);
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  // Generate kode voucher acak
+  const generateVoucherCode = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+    for (let i = 0; i < 12; i++) {
+      if (i > 0 && i % 4 === 0) code += "-";
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return code;
+  };
 
   const totalPoints = 12450;
   const currentLevel = 12;
@@ -59,6 +74,29 @@ export default function Hadiah() {
   const closeRedeemModal = () => {
     setShowRedeemModal(false);
     setSelectedVoucher(null);
+  };
+
+  const handleConfirmRedeem = () => {
+    const code = generateVoucherCode();
+    setRedeemedVoucher({ ...selectedVoucher, code });
+    setShowRedeemModal(false);
+    setSelectedVoucher(null);
+    setShowSuccessModal(true);
+    setCodeCopied(false);
+  };
+
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+    setRedeemedVoucher(null);
+    setCodeCopied(false);
+  };
+
+  const handleCopyCode = () => {
+    if (redeemedVoucher?.code) {
+      navigator.clipboard.writeText(redeemedVoucher.code);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
   };
 
   return (
@@ -290,12 +328,112 @@ export default function Hadiah() {
                   Batal
                 </button>
                 <button
-                  onClick={closeRedeemModal}
+                  onClick={handleConfirmRedeem}
                   className="flex-1 py-3 bg-[#006e2f] text-white rounded-xl font-semibold font-jakarta hover:bg-[#005823] transition-colors"
                 >
                   Tukar Sekarang
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && redeemedVoucher && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden">
+            {/* Green Header */}
+            <div className="bg-[#006e2f] px-6 pt-10 pb-8 flex flex-col items-center text-center relative">
+              <button
+                onClick={closeSuccessModal}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
+              {/* Animated checkmark circle */}
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <CheckCircle2 className="w-12 h-12 text-[#006e2f]" />
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <PartyPopper className="w-5 h-5 text-yellow-300" />
+                <h3 className="text-2xl font-bold text-white font-lexend">Penukaran Berhasil!</h3>
+                <PartyPopper className="w-5 h-5 text-yellow-300 scale-x-[-1]" />
+              </div>
+              <p className="text-white/80 font-jakarta text-sm">
+                Selamat! Voucher kamu sudah siap digunakan.
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              {/* Voucher Info */}
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0">
+                  <img src={redeemedVoucher.image} alt={redeemedVoucher.title} className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <p className="font-semibold text-[#191c20] font-lexend">{redeemedVoucher.title}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Gift className="w-3.5 h-3.5 text-[#006e2f]" />
+                    <span className="text-xs text-[#6d7b6c] font-jakarta">{redeemedVoucher.category}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Poin Info */}
+              <div className="bg-[#f0faf4] rounded-2xl p-4 mb-5 flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-[#6d7b6c] font-jakarta">Poin digunakan</p>
+                  <p className="text-lg font-bold text-red-500 font-lexend">-{redeemedVoucher.points.toLocaleString()} Pts</p>
+                </div>
+                <div className="w-px h-10 bg-[#e5eeff]"></div>
+                <div className="text-right">
+                  <p className="text-xs text-[#6d7b6c] font-jakarta">Sisa poin kamu</p>
+                  <p className="text-lg font-bold text-[#006e2f] font-lexend">{(totalPoints - redeemedVoucher.points).toLocaleString()} Pts</p>
+                </div>
+              </div>
+
+              {/* Kode Voucher */}
+              <div className="mb-6">
+                <p className="text-xs text-[#6d7b6c] font-jakarta mb-2 uppercase tracking-wide font-semibold">Kode Voucher</p>
+                <div className="flex items-center gap-2 bg-[#f8f9ff] border-2 border-dashed border-[#006e2f]/30 rounded-xl p-3">
+                  <span className="flex-1 text-center text-lg font-bold text-[#191c20] font-lexend tracking-widest">
+                    {redeemedVoucher.code}
+                  </span>
+                  <button
+                    onClick={handleCopyCode}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-jakarta transition-all ${
+                      codeCopied
+                        ? "bg-green-100 text-green-700"
+                        : "bg-[#006e2f] text-white hover:bg-[#005823]"
+                    }`}
+                  >
+                    {codeCopied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Tersalin
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        Salin
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-[#6d7b6c] font-jakarta mt-2 text-center">
+                  Tunjukkan kode ini kepada merchant untuk menggunakan voucher.
+                </p>
+              </div>
+
+              {/* CTA Button */}
+              <button
+                onClick={closeSuccessModal}
+                className="w-full py-3.5 bg-[#006e2f] text-white rounded-xl font-semibold font-jakarta hover:bg-[#005823] transition-colors"
+              >
+                Kembali ke Pusat Hadiah
+              </button>
             </div>
           </div>
         </div>

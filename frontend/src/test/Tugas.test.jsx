@@ -1,9 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Tugas from '../pages/Tugas';
+import * as AuthContextModule from '../context/AuthContext';
 
 const renderTugas = () => {
+  vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+    user: { id: 1, username: 'ghifari' },
+    setUser: vi.fn(),
+    isLoading: false,
+  });
   return render(
     <MemoryRouter initialEntries={['/tugas']}>
       <Tugas />
@@ -138,12 +144,12 @@ describe('Tugas Page', () => {
     expect(screen.getByText('Tips Tambahan')).toBeInTheDocument();
   });
 
-  it('guide modal dapat ditutup dengan tombol Mengerti', () => {
+  it('guide modal dapat ditutup dengan tombol Oke', () => {
     renderTugas();
     const uploadButtons = screen.getAllByText('Upload');
     fireEvent.click(uploadButtons[0]);
     fireEvent.click(screen.getByText('Panduan'));
-    fireEvent.click(screen.getByText('Mengerti, Lanjut Upload'));
+    fireEvent.click(screen.getByText('Oke'));
     expect(screen.queryByText('Panduan Upload Bukti')).not.toBeInTheDocument();
   });
 

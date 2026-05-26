@@ -30,9 +30,10 @@ describe('ResetPasswordOtp Page', () => {
     expect(screen.getByText('Verifikasi OTP')).toBeInTheDocument();
   });
 
-  it('menampilkan email tujuan OTP', () => {
+  it('menampilkan email tujuan OTP (disamarkan)', () => {
     renderPage();
-    expect(screen.getByText('user@email.com')).toBeInTheDocument();
+    // Email disamarkan: user@email.com → use*@email.com
+    expect(screen.getByText(/use\*@email\.com/i)).toBeInTheDocument();
   });
 
   it('menampilkan 6 kotak input OTP', () => {

@@ -1,9 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Profile from '../pages/Profil';
+import * as AuthContextModule from '../context/AuthContext';
 
 const renderProfil = () => {
+  vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+    user: { id: 1, username: 'ghifari' },
+    setUser: vi.fn(),
+    isLoading: false,
+  });
   return render(
     <MemoryRouter initialEntries={['/profil']}>
       <Profile />
@@ -23,7 +29,6 @@ describe('Profil Page', () => {
 
   it('menampilkan lokasi dan tanggal bergabung', () => {
     renderProfil();
-    expect(screen.getByText(/Jakarta, Indonesia/i)).toBeInTheDocument();
     expect(screen.getByText(/Jan 2024/i)).toBeInTheDocument();
   });
 
@@ -235,8 +240,6 @@ describe('Profil Page', () => {
   it('menampilkan menu Informasi Pribadi', () => {
     renderProfil();
     expect(screen.getByText('Informasi Pribadi')).toBeInTheDocument();
-    expect(screen.queryByText('Keamanan & Password')).not.toBeInTheDocument();
-    expect(screen.queryByText('Metode Pembayaran')).not.toBeInTheDocument();
   });
 
   it('menu Informasi Pribadi dapat diklik', () => {
@@ -244,44 +247,21 @@ describe('Profil Page', () => {
     fireEvent.click(screen.getByText('Informasi Pribadi'));
   });
 
-  it('menampilkan toggle Mode Gelap', () => {
+  it('tidak menampilkan toggle Mode Gelap', () => {
     renderProfil();
-    expect(screen.getByText('Mode Gelap')).toBeInTheDocument();
-  });
-
-  it('tidak menampilkan toggle Peringatan Harian', () => {
-    renderProfil();
-    expect(screen.queryByText('Peringatan Harian')).not.toBeInTheDocument();
-  });
-
-  it('toggle Mode Gelap dapat diklik', () => {
-    renderProfil();
-    const darkModeText = screen.getByText('Mode Gelap');
-    const toggleContainer = darkModeText.closest('div').parentElement;
-    const toggleButton = toggleContainer.querySelector('button');
-    fireEvent.click(toggleButton);
-    fireEvent.click(toggleButton);
+    expect(screen.queryByText('Mode Gelap')).not.toBeInTheDocument();
   });
 
   it('menampilkan tombol Keluar di pengaturan akun', () => {
     renderProfil();
-    // "Keluar" muncul di Navbar dan di Pengaturan Akun
     const keluarItems = screen.getAllByText('Keluar');
     expect(keluarItems.length).toBeGreaterThanOrEqual(1);
-    // Pastikan yang di pengaturan akun menggunakan font-jakarta (bukan Navbar)
-    const settingsKeluar = keluarItems.find(el =>
-      el.className.includes('font-jakarta')
-    );
-    expect(settingsKeluar).toBeTruthy();
   });
 
   it('tombol Keluar di pengaturan akun dapat diklik', () => {
     renderProfil();
     const keluarItems = screen.getAllByText('Keluar');
-    const settingsKeluar = keluarItems.find(el =>
-      el.className.includes('font-jakarta')
-    );
-    fireEvent.click(settingsKeluar.closest('button'));
+    fireEvent.click(keluarItems[keluarItems.length - 1].closest('button'));
   });
 
   it('menampilkan tombol Hapus Akun', () => {

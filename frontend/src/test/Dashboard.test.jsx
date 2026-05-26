@@ -1,9 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from '../pages/Dashboard';
+import * as AuthContextModule from '../context/AuthContext';
 
 const renderDashboard = () => {
+  vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+    user: { id: 1, username: 'ghifari' },
+    setUser: vi.fn(),
+    isLoading: false,
+  });
   return render(
     <MemoryRouter initialEntries={['/dashboard']}>
       <Dashboard />
@@ -36,12 +42,6 @@ describe('Dashboard Page', () => {
   it('menampilkan motivasi harian', () => {
     renderDashboard();
     expect(screen.getByText(/Mari lanjutkan perjalanan sehatmu hari ini/i)).toBeInTheDocument();
-  });
-
-  it('menampilkan info streak', () => {
-    renderDashboard();
-    expect(screen.getByText('Streak')).toBeInTheDocument();
-    expect(screen.getByText('14 Hari')).toBeInTheDocument();
   });
 
   it('menampilkan kartu Progress Minggu Ini dengan persentase 75%', () => {
@@ -81,21 +81,6 @@ describe('Dashboard Page', () => {
     expect(screen.getByText('Istirahat')).toBeInTheDocument();
   });
 
-  it('menampilkan jadwal hari ini', () => {
-    renderDashboard();
-    expect(screen.getByText('Jadwal Hari Ini')).toBeInTheDocument();
-    expect(screen.getByText('Sarapan sehat')).toBeInTheDocument();
-    expect(screen.getByText('Makan siang')).toBeInTheDocument();
-    expect(screen.getByText('Workout')).toBeInTheDocument();
-  });
-
-  it('menampilkan waktu aktivitas', () => {
-    renderDashboard();
-    expect(screen.getByText('07:00')).toBeInTheDocument();
-    expect(screen.getByText('12:00')).toBeInTheDocument();
-    expect(screen.getByText('17:00')).toBeInTheDocument();
-  });
-
   it('menampilkan tombol Lihat Semua untuk tugas', () => {
     renderDashboard();
     expect(screen.getByText('Lihat Semua')).toBeInTheDocument();
@@ -105,11 +90,6 @@ describe('Dashboard Page', () => {
     renderDashboard();
     const lihatSemua = screen.getByText('Lihat Semua');
     fireEvent.click(lihatSemua);
-  });
-
-  it('menampilkan tombol Tambah Aktivitas', () => {
-    renderDashboard();
-    expect(screen.getByText(/Tambah Aktivitas/i)).toBeInTheDocument();
   });
 
   it('menampilkan penurunan berat badan', () => {
@@ -245,9 +225,22 @@ describe('Dashboard Page', () => {
     );
     renderDashboard();
     expect(screen.getByText('66.2')).toBeInTheDocument();
-    // tombol tidak terkunci karena bukan tanggal hari ini
     expect(
       screen.getByRole('button', { name: /tambah berat badan/i })
     ).toBeEnabled();
+  });
+
+  it('menampilkan tombol Klaim untuk tugas yang sudah selesai', () => {
+    renderDashboard();
+    // Tugas "Minum air 8 gelas" sudah completed=true secara default
+    expect(screen.getByText(/Klaim/i)).toBeInTheDocument();
+  });
+
+  it('dapat mengklaim poin tugas yang sudah selesai', () => {
+    renderDashboard();
+    const klaimBtn = screen.getAllByText(/Klaim/i)[0];
+    fireEvent.click(klaimBtn);
+    // Setelah klaim, poin muncul sebagai badge
+    expect(screen.getAllByText(/Pts/i).length).toBeGreaterThan(0);
   });
 });

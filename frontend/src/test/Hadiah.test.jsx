@@ -1,9 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Hadiah from '../pages/Hadiah';
+import * as AuthContextModule from '../context/AuthContext';
 
 const renderHadiah = () => {
+  vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+    user: { id: 1, username: 'ghifari' },
+    setUser: vi.fn(),
+    isLoading: false,
+  });
   return render(
     <MemoryRouter initialEntries={['/hadiah']}>
       <Hadiah />
