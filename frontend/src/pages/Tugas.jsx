@@ -52,9 +52,10 @@ export default function Tugas() {
   const [showSetupModal, setShowSetupModal] = useState(false);
 
   // Setelah setup selesai, tandai done dan isi tugas
-  const handleSetupConfirm = ({ currentWeight: newWeight, targetWeight: newTarget, tasks: newTasks }) => {
+  const handleSetupConfirm = ({ gender, age, height, currentWeight: newWeight, targetWeight: newTarget, tasks: newTasks }) => {
     try {
       localStorage.setItem("healthyup:setupDone", "true");
+      localStorage.removeItem("healthyup:newUser");
       const stored = JSON.parse(localStorage.getItem("healthyup:weightLog")) ?? {};
       localStorage.setItem("healthyup:weightLog", JSON.stringify({
         ...stored,

@@ -1,8 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute";
 import OnboardingStep1 from "./pages/OnboardingStep1";
-import OnboardingStep2 from "./pages/OnboardingStep2";
-import OnboardingStep3 from "./pages/OnboardingStep3";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPasswordOtp from "./pages/ResetPasswordOtp";
@@ -19,11 +17,10 @@ function App() {
         {/* Public routes */}
         <Route path="/" element={<Navigate to="/onboarding/1" replace />} />
         <Route path="/onboarding/1" element={<OnboardingStep1 />} />
-        <Route path="/onboarding/2" element={<OnboardingStep2 />} />
-        <Route path="/onboarding/3" element={<OnboardingStep3 />} />
-        {/* Redirect lama step 4 & 5 ke step 3 agar tidak 404 */}
-        <Route path="/onboarding/4" element={<Navigate to="/onboarding/3" replace />} />
-        <Route path="/onboarding/5" element={<Navigate to="/onboarding/3" replace />} />
+        <Route path="/onboarding/2" element={<Navigate to="/onboarding/1" replace />} />
+        <Route path="/onboarding/3" element={<Navigate to="/onboarding/1" replace />} />
+        <Route path="/onboarding/4" element={<Navigate to="/onboarding/1" replace />} />
+        <Route path="/onboarding/5" element={<Navigate to="/onboarding/1" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/lupa-password" element={<ForgotPassword />} />
         <Route path="/reset-password/otp" element={<ResetPasswordOtp />} />

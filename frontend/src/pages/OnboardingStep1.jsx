@@ -1,20 +1,23 @@
 import { useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useNavigateWithTransition } from "../lib/useNavigateWithTransition";
-
-const REGISTER_KEY = "healthyup:register";
+import { authApi } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function OnboardingStep1() {
   const navigate = useNavigate();
   const go = useNavigateWithTransition();
   const panelRef = useRef(null);
+  const { setUser } = useAuth();
 
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [username,     setUsername]     = useState("");
+  const [email,        setEmail]        = useState("");
+  const [password,     setPassword]     = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors,       setErrors]       = useState({});
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [registerError, setRegisterError] = useState("");
 
   const validate = () => {
     const next = {};
@@ -28,18 +31,27 @@ export default function OnboardingStep1() {
     return next;
   };
 
-  const handleNext = () => {
+  const handleRegister = async () => {
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
-    // Simpan data register ke sessionStorage agar bisa diakses di Step 5
-    sessionStorage.setItem(
-      REGISTER_KEY,
-      JSON.stringify({ username: username.trim(), email: email.trim(), password })
-    );
-    navigate("/onboarding/2");
+
+    setRegisterError("");
+    setIsLoading(true);
+    try {
+      // TODO: kirim juga gender, age, height, weight dari SetupTargetModal saat backend siap
+      const res = await authApi.register(username.trim(), email.trim(), password);
+      setUser(res.data.user);
+      // Tandai user baru agar Dashboard auto-buka SetupTargetModal
+      localStorage.setItem("healthyup:newUser", "true");
+      navigate("/dashboard");
+    } catch (err) {
+      setRegisterError(err.message || "Gagal membuat akun. Coba lagi.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -51,11 +63,8 @@ export default function OnboardingStep1() {
       >
         {/* Progress Bar */}
         <div className="w-full max-w-md mx-auto mb-6 pt-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-[#6d7b6c] font-jakarta">Langkah 1 dari 3</span>
-          </div>
           <div className="h-2 bg-[#e5eeff] rounded-full overflow-hidden">
-            <div className="h-full w-[33%] bg-[#006e2f] rounded-full transition-all duration-500"></div>
+            <div className="h-full w-[50%] bg-[#006e2f] rounded-full transition-all duration-500" />
           </div>
         </div>
 
@@ -68,7 +77,6 @@ export default function OnboardingStep1() {
             Mulai perjalanan kesehatan Anda dengan mendaftar akun HealthyUp
           </p>
 
-          {/* Form */}
           <div className="space-y-5">
             {/* Username */}
             <div>
@@ -84,9 +92,7 @@ export default function OnboardingStep1() {
                   setErrors((prev) => ({ ...prev, username: undefined }));
                 }}
                 className={`w-full px-4 py-3 rounded-xl border ${
-                  errors.username
-                    ? "border-red-400 focus:ring-red-300"
-                    : "border-[#c1c9bf] focus:ring-[#006e2f]"
+                  errors.username ? "border-red-400 focus:ring-red-300" : "border-[#c1c9bf] focus:ring-[#006e2f]"
                 } bg-white focus:outline-none focus:ring-2 focus:border-transparent font-jakarta`}
               />
               {errors.username && (
@@ -110,9 +116,7 @@ export default function OnboardingStep1() {
                   setErrors((prev) => ({ ...prev, email: undefined }));
                 }}
                 className={`w-full px-4 py-3 rounded-xl border ${
-                  errors.email
-                    ? "border-red-400 focus:ring-red-300"
-                    : "border-[#c1c9bf] focus:ring-[#006e2f]"
+                  errors.email ? "border-red-400 focus:ring-red-300" : "border-[#c1c9bf] focus:ring-[#006e2f]"
                 } bg-white focus:outline-none focus:ring-2 focus:border-transparent font-jakarta`}
               />
               {errors.email && (
@@ -136,9 +140,7 @@ export default function OnboardingStep1() {
                     setErrors((prev) => ({ ...prev, password: undefined }));
                   }}
                   className={`w-full px-4 py-3 pr-12 rounded-xl border ${
-                    errors.password
-                      ? "border-red-400 focus:ring-red-300"
-                      : "border-[#c1c9bf] focus:ring-[#006e2f]"
+                    errors.password ? "border-red-400 focus:ring-red-300" : "border-[#c1c9bf] focus:ring-[#006e2f]"
                   } bg-white focus:outline-none focus:ring-2 focus:border-transparent font-jakarta`}
                 />
                 <button
@@ -155,12 +157,28 @@ export default function OnboardingStep1() {
               )}
             </div>
 
+            {registerError && (
+              <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 font-jakarta">
+                {registerError}
+              </div>
+            )}
+
             <button
-              onClick={handleNext}
-              className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2"
+              onClick={handleRegister}
+              disabled={isLoading}
+              className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Lanjutkan
-              <ArrowRight className="w-5 h-5" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Membuat akun...
+                </>
+              ) : (
+                <>
+                  Daftar
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </button>
           </div>
 
@@ -176,8 +194,7 @@ export default function OnboardingStep1() {
           </p>
         </div>
 
-        {/* Bottom Padding */}
-        <div className="h-8"></div>
+        <div className="h-8" />
       </div>
 
       {/* Right Side - Image */}

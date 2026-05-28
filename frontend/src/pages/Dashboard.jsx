@@ -66,11 +66,16 @@ export default function Dashboard() {
 
   // ─── UI state ─────────────────────────────────────────────────────────────
   const [showWeightModal,   setShowWeightModal]   = useState(false);
-  const [showSetupModal,    setShowSetupModal]    = useState(false);
   const [reminderDismissed, setReminderDismissed] = useState(false);
 
   const [setupDone, setSetupDone] = useState(() => {
     try { return localStorage.getItem(SETUP_DONE_KEY) === "true"; }
+    catch { return false; }
+  });
+
+  // Auto-buka modal setup untuk user baru
+  const [showSetupModal, setShowSetupModal] = useState(() => {
+    try { return localStorage.getItem("healthyup:newUser") === "true"; }
     catch { return false; }
   });
 
@@ -105,8 +110,7 @@ export default function Dashboard() {
   };
 
   // Dipakai baik untuk setup awal maupun ubah target dari WeightCard
-  const handleSetupConfirm = ({ currentWeight: newWeight, targetWeight: newTarget, tasks: newTasks }) => {
-    // Update berat saat ini jika user menginput berat baru lewat modal
+  const handleSetupConfirm = ({ gender, age, height, currentWeight: newWeight, targetWeight: newTarget, tasks: newTasks }) => {
     if (newWeight !== currentWeight) {
       setPreviousWeight(currentWeight);
       setCurrentWeight(newWeight);
@@ -122,6 +126,7 @@ export default function Dashboard() {
         lastLoggedDate, targetWeight: newTarget,
       }));
       window.localStorage.setItem(SETUP_DONE_KEY, "true");
+      window.localStorage.removeItem("healthyup:newUser");
     } catch {}
     setSetupDone(true);
   };
