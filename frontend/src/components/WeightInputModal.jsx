@@ -106,7 +106,7 @@ export default function WeightInputModal({
           <div className="p-6 space-y-4">
             {!allowMultiplePerDay && (
               <p className="text-sm text-[#6d7b6c] font-jakarta">
-                Berat badan hanya bisa dicatat sekali per hari. Pastikan angka yang kamu masukkan sudah benar.
+                Berat badan hanya bisa dicatat sekali per minggu. Pastikan angka yang kamu masukkan sudah benar.
               </p>
             )}
 

@@ -14,58 +14,60 @@ import {
   Flame,
   Star,
   Clock,
-  Loader2,
 } from "lucide-react";
 
 // Tugas harian yang "di-generate AI"
 const AI_DAILY_TASKS = [
-  { id: 1, title: "Minum air 8 gelas",   category: "Hidrasi",   points: 10, Icon: Droplets,         iconColor: "text-blue-500"   },
-  { id: 2, title: "Makan sayur 3 porsi", category: "Nutrisi",   points: 15, Icon: Apple,            iconColor: "text-green-600"  },
-  { id: 3, title: "Jalan kaki 30 menit", category: "Olahraga",  points: 20, Icon: Footprints,       iconColor: "text-orange-500" },
-  { id: 4, title: "Tidur 8 jam",         category: "Istirahat", points: 10, Icon: Moon,             iconColor: "text-purple-500" },
-  { id: 5, title: "Sarapan bergizi",     category: "Nutrisi",   points: 15, Icon: UtensilsCrossed,  iconColor: "text-yellow-600" },
+  { id: 1, title: "Minum air 8 gelas",   category: "Hidrasi",   points: 10, Icon: Droplets,        iconColor: "text-blue-500"   },
+  { id: 2, title: "Makan sayur 3 porsi", category: "Nutrisi",   points: 15, Icon: Apple,           iconColor: "text-green-600"  },
+  { id: 3, title: "Jalan kaki 30 menit", category: "Olahraga",  points: 20, Icon: Footprints,      iconColor: "text-orange-500" },
+  { id: 4, title: "Tidur 8 jam",         category: "Istirahat", points: 10, Icon: Moon,            iconColor: "text-purple-500" },
+  { id: 5, title: "Sarapan bergizi",     category: "Nutrisi",   points: 15, Icon: UtensilsCrossed, iconColor: "text-yellow-600" },
 ];
 
 // Teks animasi AI
 const AI_TYPING_LINES = [
-  "Menganalisis target berat badanmu...",
-  "Menghitung kebutuhan kalori harian...",
+  "Menganalisis berat badan & targetmu...",
+  "Menghitung kebutuhan kalori mingguan...",
   "Menyusun jadwal olahraga optimal...",
-  "Membuat daftar tugas harian...",
+  "Membuat daftar tugas minggu ini...",
   "Rencanamu siap!",
 ];
 
+const STEP_ORDER = ["weight", "target", "generating", "preview"];
+
 /**
- * Modal dua langkah:
- *  1. Set target berat badan (slider)
- *  2. Animasi "AI generate" → preview tugas → konfirmasi
+ * Modal 3 langkah:
+ *  1. target    — set target berat badan (slider, max = berat dari onboarding)
+ *  2. generating — animasi AI
+ *  3. preview   — preview tugas → konfirmasi
  *
  * Props:
- *  - isOpen         {boolean}
- *  - onClose        {fn}
- *  - currentWeight  {number}
- *  - initialTarget  {number}
- *  - onConfirm      {fn({ targetWeight, tasks })}
+ *  - isOpen        {boolean}
+ *  - onClose       {fn}
+ *  - initialWeight {number}  berat saat ini dari onboarding/localStorage
+ *  - initialTarget {number}  target awal (0 jika belum ada)
+ *  - onConfirm     {fn({ currentWeight, targetWeight, tasks })}
  */
 export default function SetupTargetModal({
   isOpen,
   onClose,
-  currentWeight,
-  initialTarget,
+  initialWeight = 0,
+  initialTarget = 0,
   onConfirm,
 }) {
-  const [step, setStep] = useState("target"); // "target" | "generating" | "preview"
-  const [targetWeight, setTargetWeight] = useState(initialTarget);
-  const [typingIndex, setTypingIndex] = useState(0);
+  const [step,         setStep]         = useState("target");
+  const [targetWeight, setTargetWeight] = useState(initialTarget || Math.max(30, initialWeight - 5));
+  const [typingIndex,  setTypingIndex]  = useState(0);
 
-  // Reset state setiap kali modal dibuka
+  // Reset setiap kali modal dibuka
   useEffect(() => {
     if (isOpen) {
       setStep("target");
-      setTargetWeight(initialTarget);
+      setTargetWeight(initialTarget || Math.max(30, initialWeight - 5));
       setTypingIndex(0);
     }
-  }, [isOpen, initialTarget]);
+  }, [isOpen, initialWeight, initialTarget]);
 
   // Animasi AI typing
   useEffect(() => {
@@ -81,9 +83,10 @@ export default function SetupTargetModal({
 
   if (!isOpen) return null;
 
-  const diff = Math.abs(targetWeight - currentWeight).toFixed(1);
-  const isLose = targetWeight < currentWeight;
-  const isGain = targetWeight > currentWeight;
+  const weightMax = initialWeight > 30 ? initialWeight : 150;
+  const diff      = Math.abs(targetWeight - initialWeight).toFixed(1);
+  const isLose    = targetWeight < initialWeight;
+  const isGain    = targetWeight > initialWeight;
 
   const handleGenerate = () => {
     setTypingIndex(0);
@@ -91,7 +94,7 @@ export default function SetupTargetModal({
   };
 
   const handleConfirm = () => {
-    onConfirm({ targetWeight, tasks: AI_DAILY_TASKS });
+    onConfirm({ currentWeight: initialWeight, targetWeight, tasks: AI_DAILY_TASKS });
     onClose();
   };
 
@@ -107,20 +110,17 @@ export default function SetupTargetModal({
         className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── STEP: TARGET BERAT ── */}
+
+        {/* ── STEP 1: SET TARGET ── */}
         {step === "target" && (
           <>
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-[#e5eeff]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
                   <Target className="w-5 h-5 text-[#006e2f]" />
                 </div>
                 <div>
-                  <h2
-                    id="setup-modal-title"
-                    className="text-lg font-bold text-[#191c20] font-lexend"
-                  >
+                  <h2 id="setup-modal-title" className="text-lg font-bold text-[#191c20] font-lexend">
                     Set Target Berat Badan
                   </h2>
                   <p className="text-xs text-[#6d7b6c] font-jakarta">
@@ -138,7 +138,6 @@ export default function SetupTargetModal({
               </button>
             </div>
 
-            {/* Body */}
             <div className="p-6 space-y-5">
               {/* Angka target */}
               <div className="text-center">
@@ -156,8 +155,8 @@ export default function SetupTargetModal({
                 <input
                   type="range"
                   min="30"
-                  max={currentWeight}
-                  step="0.1"
+                  max={weightMax}
+                  step="0.5"
                   value={targetWeight}
                   onChange={(e) => setTargetWeight(parseFloat(e.target.value))}
                   aria-label="Target berat badan"
@@ -165,7 +164,7 @@ export default function SetupTargetModal({
                 />
                 <div className="flex justify-between text-xs text-[#6d7b6c] mt-1.5 font-jakarta">
                   <span>30 kg</span>
-                  <span>{currentWeight} kg</span>
+                  <span>{initialWeight > 0 ? `${initialWeight} kg` : "150 kg"}</span>
                 </div>
               </div>
 
@@ -174,7 +173,7 @@ export default function SetupTargetModal({
                 <div className="bg-[#f8f9ff] rounded-2xl p-3 text-center border border-[#e5eeff]">
                   <p className="text-[10px] text-[#6d7b6c] font-jakarta mb-1">Saat Ini</p>
                   <p className="text-base font-bold text-[#191c20] font-lexend">
-                    {currentWeight} kg
+                    {initialWeight > 0 ? `${initialWeight} kg` : "—"}
                   </p>
                 </div>
                 <div className="bg-green-50 rounded-2xl p-3 text-center border-2 border-[#006e2f]">
@@ -185,19 +184,14 @@ export default function SetupTargetModal({
                 </div>
                 <div className="bg-[#f8f9ff] rounded-2xl p-3 text-center border border-[#e5eeff]">
                   <p className="text-[10px] text-[#6d7b6c] font-jakarta mb-1">Perlu</p>
-                  <p
-                    className={`text-base font-bold font-lexend ${
-                      isLose ? "text-blue-500" : isGain ? "text-orange-500" : "text-[#191c20]"
-                    }`}
-                  >
+                  <p className={`text-base font-bold font-lexend ${
+                    isLose ? "text-blue-500" : isGain ? "text-orange-500" : "text-[#191c20]"
+                  }`}>
                     {diff} kg
                   </p>
                 </div>
               </div>
 
-             
-
-              {/* CTA */}
               <button
                 type="button"
                 onClick={handleGenerate}
@@ -210,24 +204,14 @@ export default function SetupTargetModal({
           </>
         )}
 
-        {/* ── STEP: GENERATING (animasi AI) ── */}
+        {/* ── STEP 3: GENERATING (animasi AI) ── */}
         {step === "generating" && (
           <div className="p-8 flex flex-col items-center gap-8">
-            {/* Spinner */}
             <div className="relative w-24 h-24">
-              <svg
-                className="absolute inset-0 w-full h-full animate-spin"
-                viewBox="0 0 96 96"
-                fill="none"
-              >
+              <svg className="absolute inset-0 w-full h-full animate-spin" viewBox="0 0 96 96" fill="none">
                 <circle cx="48" cy="48" r="42" stroke="#e5eeff" strokeWidth="8" />
-                <circle
-                  cx="48" cy="48" r="42"
-                  stroke="#006e2f"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray="70 194"
-                />
+                <circle cx="48" cy="48" r="42" stroke="#006e2f" strokeWidth="8"
+                  strokeLinecap="round" strokeDasharray="70 194" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <Sparkle className="w-7 h-7 text-[#005823]" />
@@ -246,16 +230,12 @@ export default function SetupTargetModal({
                       i < typingIndex ? "opacity-40" : "opacity-100"
                     }`}
                   >
-                    <CheckCircle2
-                      className={`w-4 h-4 flex-shrink-0 ${
-                        i < typingIndex ? "text-[#006e2f]" : "text-[#c1c9bf] animate-pulse"
-                      }`}
-                    />
-                    <span
-                      className={`text-sm font-lexend ${
-                        i < typingIndex ? "text-[#6d7b6c]" : "text-[#191c20]"
-                      }`}
-                    >
+                    <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${
+                      i < typingIndex ? "text-[#006e2f]" : "text-[#c1c9bf] animate-pulse"
+                    }`} />
+                    <span className={`text-sm font-lexend ${
+                      i < typingIndex ? "text-[#6d7b6c]" : "text-[#191c20]"
+                    }`}>
                       {line}
                     </span>
                   </div>
@@ -265,19 +245,19 @@ export default function SetupTargetModal({
           </div>
         )}
 
-        {/* ── STEP: PREVIEW TUGAS ── */}
+        {/* ── STEP 4: PREVIEW TUGAS ── */}
         {step === "preview" && (
           <>
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-[#e5eeff]">
               <div>
                 <h2 className="text-lg font-bold text-[#191c20] font-lexend">
                   Rencanamu sudah siap!
                 </h2>
                 <p className="text-xs text-[#6d7b6c] font-jakarta mt-0.5">
-                  Target: <span className="font-semibold text-[#006e2f]">{targetWeight.toFixed(1)} kg</span>
-                  {" "}· Perlu turun{" "}
-                  <span className="font-semibold text-blue-500">{diff} kg</span>
+                  Target:{" "}
+                  <span className="font-semibold text-[#006e2f]">{targetWeight.toFixed(1)} kg</span>
+                  {" · "}
+                  <span className="font-semibold text-blue-500">{diff} kg</span> lagi
                 </p>
               </div>
               <button
@@ -312,7 +292,7 @@ export default function SetupTargetModal({
             {/* Daftar tugas */}
             <div className="px-6 pb-2">
               <p className="text-xs font-semibold text-[#6d7b6c] font-jakarta mb-2 uppercase tracking-wide">
-                Tugas Harian
+                Tugas Minggu Ini
               </p>
               <div className="bg-[#f8f9ff] rounded-2xl border border-[#e5eeff] overflow-hidden">
                 {AI_DAILY_TASKS.map((task, i) => (
@@ -341,10 +321,9 @@ export default function SetupTargetModal({
             </div>
 
             <p className="text-xs text-center text-[#6d7b6c] font-jakarta px-6 py-3">
-              Tugas akan diperbarui AI setiap hari sesuai progresmu!
+              Tugas diperbarui AI setiap minggu sesuai progresmu!
             </p>
 
-            {/* Actions */}
             <div className="flex gap-3 px-6 pb-6">
               <button
                 type="button"

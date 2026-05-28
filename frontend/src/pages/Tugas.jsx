@@ -3,7 +3,6 @@ import {
   CheckCircle2, 
   Clock, 
   Star, 
-  Trophy, 
   Upload,
   Eye,
   Circle,
@@ -11,37 +10,77 @@ import {
   HelpCircle,
   X,
   CloudUpload,
-  Sparkle,
+  Camera,
+  Clapperboard,
+  Lightbulb,
+  ClipboardList,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
-import AiTaskGenerator from "../components/AiTaskGenerator";
+import SetupTargetModal from "../components/SetupTargetModal";
 
 const INITIAL_TASKS = {
-  "hari-ini": [
-    { id: 1, title: "Minum air 8 gelas",            category: "Hidrasi",   completed: true,  points: 10 },
-    { id: 2, title: "Makan sayur 3 porsi",           category: "Nutrisi",   completed: false, points: 15 },
-    { id: 3, title: "Jalan kaki 30 menit",           category: "Olahraga",  completed: false, points: 20 },
-    { id: 4, title: "Tidur 8 jam",                   category: "Istirahat", completed: false, points: 10 },
-    { id: 5, title: "Makan protein tinggi",          category: "Nutrisi",   completed: false, points: 15 },
-    { id: 6, title: "Stretching pagi",               category: "Olahraga",  completed: true,  points: 10 },
-  ],
-  "minggu-ini": [
-    { id: 7, title: "Workout 4x seminggu",           category: "Olahraga",  completed: false, points: 50 },
-    { id: 8, title: "Tidur teratur 7 hari",          category: "Istirahat", completed: false, points: 30 },
-    { id: 9, title: "Minum air cukup 7 hari",        category: "Hidrasi",   completed: true,  points: 40 },
-  ],
+  "hari-ini": [],
   "tantangan": [
-    { id: 10, title: "Turun 1kg minggu ini",         category: "Tantangan", completed: false, points: 100 },
+    { id: 10, title: "Turun 1kg minggu ini",            category: "Tantangan", completed: false, points: 100 },
     { id: 11, title: "Olahraga 30 hari berturut-turut", category: "Tantangan", completed: false, points: 200 },
   ],
 };
 
 export default function Tugas() {
-  const [activeTab, setActiveTab] = useState("hari-ini");
+  // Baca dari localStorage — key yang sama dengan Dashboard
+  const [setupDone, setSetupDone] = useState(() => {
+    try { return localStorage.getItem("healthyup:setupDone") === "true"; }
+    catch { return false; }
+  });
+
+  const [weightData] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("healthyup:weightLog"));
+      const onboardingWeight = JSON.parse(sessionStorage.getItem("healthyup:register"))?.weight ?? 0;
+      return {
+        currentWeight: stored?.currentWeight ?? onboardingWeight,
+        targetWeight:  stored?.targetWeight  ?? 0,
+      };
+    } catch {
+      return { currentWeight: 0, targetWeight: 0 };
+    }
+  });
+
   const [tasks, setTasks] = useState(INITIAL_TASKS);
+  const hasTasks = setupDone && (tasks["hari-ini"]?.length ?? 0) > 0;
+
+  const [showSetupModal, setShowSetupModal] = useState(false);
+
+  // Setelah setup selesai, tandai done dan isi tugas
+  const handleSetupConfirm = ({ currentWeight: newWeight, targetWeight: newTarget, tasks: newTasks }) => {
+    try {
+      localStorage.setItem("healthyup:setupDone", "true");
+      const stored = JSON.parse(localStorage.getItem("healthyup:weightLog")) ?? {};
+      localStorage.setItem("healthyup:weightLog", JSON.stringify({
+        ...stored,
+        currentWeight: newWeight,
+        previousWeight: stored.currentWeight ?? newWeight,
+        targetWeight: newTarget,
+      }));
+    } catch {}
+    setTasks(prev => ({
+      ...prev,
+      "hari-ini": newTasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        category: t.category,
+        completed: false,
+        points: t.points,
+      })),
+    }));
+    setSetupDone(true);
+    setShowSetupModal(false);
+  };
+
+  const [activeTab, setActiveTab] = useState("hari-ini");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [guideModalOpen, setGuideModalOpen] = useState(false);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [guidePage, setGuidePage] = useState(0);
   const [selectedTask, setSelectedTask] = useState(null);
   const [uploadedProofs, setUploadedProofs] = useState({});
   const [previewMedia, setPreviewMedia] = useState([]);
@@ -140,17 +179,6 @@ export default function Tugas() {
 
   const hasProof = (taskId) => Boolean(uploadedProofs[taskId]);
 
-  // Terapkan tugas hasil generate AI — ganti hari-ini & minggu-ini
-  const handleAiConfirm = (dailyTasks, weeklyTasks) => {
-    setTasks(prev => ({
-      ...prev,
-      "hari-ini": dailyTasks,
-      "minggu-ini": weeklyTasks,
-    }));
-    setUploadedProofs({});
-    setActiveTab("hari-ini");
-  };
-
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       <Navbar />
@@ -165,20 +193,44 @@ export default function Tugas() {
                 Tugas & Tantangan
               </h1>
               <p className="text-[#6d7b6c] font-jakarta mt-1">
-                Selesaikan tugas untuk mendapatkan poin dan capai target
+                Selesaikan tugas mingguan untuk mendapatkan poin dan capai target
               </p>
             </div>
-            
+            <div className="hidden sm:flex items-center gap-2 bg-white border border-[#e5eeff] rounded-2xl px-4 py-2 shadow-sm">
+              <Clock className="w-4 h-4 text-[#006e2f]" />
+              <span className="text-xs text-[#6d7b6c] font-jakarta">Diperbarui setiap minggu</span>
+            </div>
           </div>
 
+          {/* Konten utama atau empty state */}
+          {!hasTasks ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mb-5">
+                <ClipboardList className="w-10 h-10 text-[#006e2f]" />
+              </div>
+              <h2 className="text-xl font-bold text-[#191c20] font-lexend mb-2">
+                Belum ada tugas minggu ini
+              </h2>
+              <p className="text-[#6d7b6c] font-jakarta max-w-xs leading-relaxed">
+                Tugas mingguan akan muncul setelah kamu mengatur target & profil kesehatanmu di Dashboard.
+              </p>
+              <button
+                onClick={() => setShowSetupModal(true)}
+                className="mt-6 px-6 py-3 bg-[#006e2f] text-white rounded-xl font-semibold font-lexend hover:bg-[#005823] transition-colors"
+              >
+                Atur Target Sekarang
+              </button>
+            </div>
+          ) : (
+          <>
           {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgba(34,197,94,0.08)] border border-[#e5eeff]">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-5 h-5 text-[#006e2f]" />
                 <div>
-                  <p className="text-2xl font-bold text-[#191c20] font-lexend">{completedCount}</p>
-                  <p className="text-xs text-[#6d7b6c] font-jakarta">Selesai</p>
+                  <p className="text-xl font-bold text-[#191c20] font-lexend">{completedCount}</p>
+                  <p className="text-xs text-[#6d7b6c] font-jakarta">Tugas Selesai</p>
                 </div>
               </div>
             </div>
@@ -187,7 +239,7 @@ export default function Tugas() {
                 <Clock className="w-5 h-5 text-orange-500" />
                 <div>
                   <p className="text-2xl font-bold text-[#191c20] font-lexend">{currentTasks.length - completedCount}</p>
-                  <p className="text-xs text-[#6d7b6c] font-jakarta">Tersisa</p>
+                  <p className="text-xs text-[#6d7b6c] font-jakarta">Tugas Tersisa</p>
                 </div>
               </div>
             </div>
@@ -196,7 +248,7 @@ export default function Tugas() {
                 <Star className="w-5 h-5 text-purple-500" />
                 <div>
                   <p className="text-2xl font-bold text-[#191c20] font-lexend">{totalPoints}</p>
-                  <p className="text-xs text-[#6d7b6c] font-jakarta">Poin</p>
+                  <p className="text-xs text-[#6d7b6c] font-jakarta">Poin Yang Akan Didapatkan</p>
                 </div>
               </div>
             </div>
@@ -205,9 +257,8 @@ export default function Tugas() {
           {/* Tabs */}
           <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
             {[
-              { id: "hari-ini", label: "Hari Ini", },
-              { id: "minggu-ini", label: "Minggu Ini",  },
-              { id: "tantangan", label: "Tantangan", },
+              { id: "hari-ini",   label: "Tugas Minggu Ini" },
+              { id: "tantangan",  label: "Tantangan"         },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -299,6 +350,8 @@ export default function Tugas() {
               <p className="text-[#6d7b6c] font-jakarta">Tidak ada tugas di kategori ini</p>
             </div>
           )}
+          </>
+          )}
         </div>
       </main>
 
@@ -318,7 +371,7 @@ export default function Tugas() {
                 {!hasProof(selectedTask.id) && (
                   <button
                     onClick={() => setGuideModalOpen(true)}
-                    className="flex items-center gap-1 px-3 py-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-sm font-medium font-jakarta"
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl bg-gray-100 text-blue-600 hover:bg-blue-100 transition-colors text-sm font-medium font-jakarta"
                     title="Lihat Panduan Upload"
                   >
                     <HelpCircle className="w-4 h-4" />
@@ -446,85 +499,139 @@ export default function Tugas() {
       )}
 
       {/* Guide Modal */}
-      {guideModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-[#e5eeff]">
-              <div className="flex items-center gap-3">
-                
+      {guideModalOpen && (() => {
+        const GUIDE_PAGES = [
+          {
+            title: "Panduan Foto",
+            icon: Camera,
+            iconBg: "bg-gray-100",
+            iconColor: "text-blue-500",
+            tips: [
+              "Pastikan pencahayaan cukup terang, hindari backlight",
+              "Foto dari sudut yang jelas dan tidak blur",
+              "Objek utama berada di tengah frame",
+              "Resolusi minimal 720p agar detail terlihat",
+            ],
+          },
+          {
+            title: "Panduan Video",
+            icon: Clapperboard,
+            iconBg: "bg-gray-100",
+            iconColor: "text-purple-500",
+            tips: [
+              "Durasi minimal 10 detik, maksimal 60 detik",
+              "Rekam dengan posisi landscape (horizontal)",
+              "Pastikan suara dan gerakan terlihat jelas",
+            ],
+          },
+          {
+            title: "Tips Tambahan",
+            icon: Lightbulb,
+            iconBg: "bg-gray-100",
+            iconColor: "text-yellow-500",
+            tips: [
+              "Bisa upload lebih dari 1 foto/video untuk bukti yang lebih kuat",
+              "Tambahkan catatan untuk menjelaskan konteks",
+            ],
+          },
+        ];
+
+        const page = GUIDE_PAGES[guidePage];
+        const Icon = page.icon;
+        const isFirst = guidePage === 0;
+        const isLast = guidePage === GUIDE_PAGES.length - 1;
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-xl">
+
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-[#e5eeff]">
                 <div>
                   <h3 className="text-xl font-bold text-[#191c20] font-lexend">Panduan Upload Bukti</h3>
                   <p className="text-sm text-[#6d7b6c] font-jakarta">Tips agar bukti diterima</p>
                 </div>
+                <button
+                  onClick={() => { setGuideModalOpen(false); setGuidePage(0); }}
+                  className="w-10 h-10 rounded-xl bg-[#f8f9ff] flex items-center justify-center hover:bg-[#e5eeff] transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#6d7b6c]" />
+                </button>
               </div>
-              <button
-                onClick={() => setGuideModalOpen(false)}
-                className="w-10 h-10 rounded-xl bg-[#f8f9ff] flex items-center justify-center hover:bg-[#e5eeff] transition-colors"
-              >
-                <X className="w-5 h-5 text-[#6d7b6c]" />
-              </button>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-6">
-              {/* Panduan Foto */}
-              <div className=" p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <h4 className="font-bold font-lexend">Panduan Foto</h4>
+              {/* Dot Indicator */}
+              <div className="flex items-center justify-center gap-2 pt-5 px-6">
+                {GUIDE_PAGES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setGuidePage(i)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      i === guidePage ? "w-8 bg-[#006e2f]" : "w-2 bg-[#e5eeff]"
+                    }`}
+                    aria-label={`Halaman ${i + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Body */}
+              <div className="p-6 min-h-[260px] flex flex-col justify-between">
+                <div>
+                  {/* Topic Header */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className={`w-14 h-14 rounded-2xl ${page.iconBg} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-7 h-7 ${page.iconColor}`} />
+                    </div>
+                    <h4 className="text-2xl font-bold text-[#191c20] font-lexend">{page.title}</h4>
+                  </div>
+
+                  {/* Tips */}
+                  <ul className="space-y-4">
+                    {page.tips.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <span className="mt-0.5 w-6 h-6 rounded-full bg-gray-100 text-[#006e2f] flex items-center justify-center text-sm font-bold font-lexend flex-shrink-0">
+                          {i + 1}
+                        </span>
+                        <span className="text-base text-[#3d4a3c] font-jakarta leading-relaxed">{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <span className="text-sm text-[#6d7b6c] font-jakarta">Pastikan pencahayaan cukup terang, hindari backlight</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-sm text-[#6d7b6c] font-jakarta">Foto dari sudut yang jelas dan tidak blur</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-sm text-[#6d7b6c] font-jakarta">Objek utama berada di tengah frame</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-sm ttext-[#6d7b6c] font-jakarta">Resolusi minimal 720p agar detail terlihat</span>
-                  </li>
-                </ul>
-              </div>
-     
 
-              {/* Panduan Video */}
-              <div className="p-5">
-                <div className="flex items-center gap-2 mb-4">
-
-                  <h4 className="font-bold text-[#191c20] font-lexend">Panduan Video</h4>
+                {/* Navigation */}
+                <div className="flex gap-3 mt-8">
+                  {!isFirst && (
+                    <button
+                      onClick={() => setGuidePage(p => p - 1)}
+                      className="flex-1 py-3 border-2 border-[#e5eeff] text-[#6d7b6c] rounded-xl font-semibold hover:bg-[#f8f9ff] transition-colors font-lexend"
+                    >
+                      ← Sebelumnya
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (isLast) { setGuideModalOpen(false); setGuidePage(0); }
+                      else setGuidePage(p => p + 1);
+                    }}
+                    className="flex-1 py-3 bg-[#006e2f] text-white rounded-xl font-semibold hover:bg-[#005823] transition-colors font-lexend"
+                  >
+                    {isLast ? "Oke" : "Selanjutnya →"}
+                  </button>
                 </div>
-                <ul className="space-y-3">
-                  <li className="text-sm text-[#6d7b6c] font-jakarta">Durasi minimal 10 detik, maksimal 60 detik</li>
-                  <li className="text-sm text-[#6d7b6c] font-jakarta">Rekam dengan posisi landscape (horizontal)</li>
-                  <li className="text-sm text-[#6d7b6c] font-jakarta">Pastikan suara dan gerakan terlihat jelas</li>
-                </ul>
               </div>
 
-              {/* Tips Tambahan */}
-              <div className="p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <h4 className="font-bold text-[#191c20] font-lexend">Tips Tambahan</h4>
-                </div>
-                <ul className="space-y-3">
-                  <li className="text-sm text-[#6d7b6c] font-jakarta">Bisa upload lebih dari 1 foto/video untuk bukti yang lebih kuat</li>
-                  <li className="text-sm text-[#6d7b6c] font-jakarta">Tambahkan catatan untuk menjelaskan konteks</li>
-                </ul>
-              </div>
-
-              {/* Button */}
-              <button
-                onClick={() => setGuideModalOpen(false)}
-                className="w-full py-4 bg-[#006e2f] text-white rounded-xl font-semibold hover:bg-[#005823] transition-colors font-lexend"
-              >
-                Oke
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+      {/* Setup Target Modal */}
+      <SetupTargetModal
+        isOpen={showSetupModal}
+        onClose={() => setShowSetupModal(false)}
+        initialWeight={weightData.currentWeight}
+        initialTarget={weightData.targetWeight}
+        onConfirm={handleSetupConfirm}
+      />
+
     </div>
   );
 }

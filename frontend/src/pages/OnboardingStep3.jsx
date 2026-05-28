@@ -11,8 +11,6 @@ export default function OnboardingStep3() {
   const { setUser } = useAuth();
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerError, setRegisterError] = useState("");
-  const bmi = 24.2;
-  const bmiCategory = "Normal";
 
   return (
     <div className="h-screen flex bg-[var(--color-bg)] overflow-hidden">
@@ -50,10 +48,10 @@ export default function OnboardingStep3() {
           <div className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgba(34,197,94,0.08)] border border-[#e5eeff] mb-6">
             <div className="text-center mb-6">
               <p className="text-[#6d7b6c] font-jakarta mb-2">BMI Score</p>
-              <p className="text-6xl font-bold text-[#006e2f] font-lexend">{bmi}</p>
-              <div className="inline-flex items-center gap-2 bg-green-100 text-[#006e2f] px-4 py-1 rounded-full mt-3">
-                <span className="w-2 h-2 rounded-full bg-[#006e2f]"></span>
-                <span className="font-semibold font-lexend">{bmiCategory}</span>
+              {/* TODO: tampilkan BMI dari response POST /api/auth/register */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-20 h-10 bg-[#e5eeff] rounded-xl animate-pulse" />
+                <div className="w-28 h-6 bg-[#e5eeff] rounded-full animate-pulse" />
               </div>
             </div>
 
@@ -63,10 +61,6 @@ export default function OnboardingStep3() {
               <div className="absolute left-[18%] top-0 h-full w-[25%] bg-green-500"></div>
               <div className="absolute left-[43%] top-0 h-full w-[17%] bg-yellow-400"></div>
               <div className="absolute left-[60%] top-0 h-full w-[40%] bg-red-500"></div>
-              <div 
-                className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-4 border-[#006e2f] rounded-full shadow-lg transform -translate-x-1/2 transition-all"
-                style={{ left: "50%" }}
-              ></div>
             </div>
 
             {/* BMI Legend */}
@@ -76,6 +70,10 @@ export default function OnboardingStep3() {
               <span>Berlebihan</span>
               <span>Obesitas</span>
             </div>
+
+            <p className="text-xs text-center text-[#6d7b6c] font-jakarta mt-4">
+              Hasil BMI lengkap akan tersedia setelah akun dibuat.
+            </p>
           </div>
 
          
@@ -96,9 +94,20 @@ export default function OnboardingStep3() {
                   navigate("/onboarding/1");
                   return;
                 }
-                const { username, email, password } = JSON.parse(raw);
+                const { username, email, password, weight } = JSON.parse(raw);
                 const res = await authApi.register(username, email, password);
                 setUser(res.data.user);
+                // Simpan berat onboarding ke localStorage agar tersedia di Dashboard
+                if (weight) {
+                  try {
+                    const existing = JSON.parse(localStorage.getItem("healthyup:weightLog")) ?? {};
+                    localStorage.setItem("healthyup:weightLog", JSON.stringify({
+                      ...existing,
+                      currentWeight: weight,
+                      previousWeight: weight,
+                    }));
+                  } catch {}
+                }
                 sessionStorage.removeItem(REGISTER_KEY);
                 navigate("/dashboard");
               } catch (err) {

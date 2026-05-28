@@ -2,10 +2,29 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Minus, Plus, User, UserCircle2 } from "lucide-react";
 
+const REGISTER_KEY = "healthyup:register";
+
 export default function OnboardingStep2() {
   const navigate = useNavigate();
   const [gender, setGender] = useState("");
-  const [age, setAge] = useState(25);
+  const [age, setAge]       = useState(25);
+  const [height, setHeight] = useState(170);
+  const [weight, setWeight] = useState(70);
+
+  const handleNext = () => {
+    // Simpan ke sessionStorage — merge dengan data yang sudah ada (email/password dari step 1)
+    try {
+      const existing = JSON.parse(sessionStorage.getItem(REGISTER_KEY)) ?? {};
+      sessionStorage.setItem(REGISTER_KEY, JSON.stringify({
+        ...existing,
+        gender,
+        age,
+        height,
+        weight,
+      }));
+    } catch {}
+    navigate("/onboarding/3");
+  };
 
   return (
     <div className="h-screen flex bg-[var(--color-bg)] overflow-hidden">
@@ -110,7 +129,8 @@ export default function OnboardingStep2() {
                 </label>
                 <input
                   type="number"
-                  defaultValue="170"
+                  value={height}
+                  onChange={(e) => setHeight(Number(e.target.value))}
                   className="w-full px-4 py-3 rounded-xl border border-[#c1c9bf] bg-white focus:outline-none focus:ring-2 focus:ring-[#006e2f] focus:border-transparent font-jakarta text-center"
                 />
               </div>
@@ -120,14 +140,15 @@ export default function OnboardingStep2() {
                 </label>
                 <input
                   type="number"
-                  defaultValue="70"
+                  value={weight}
+                  onChange={(e) => setWeight(Number(e.target.value))}
                   className="w-full px-4 py-3 rounded-xl border border-[#c1c9bf] bg-white focus:outline-none focus:ring-2 focus:ring-[#006e2f] focus:border-transparent font-jakarta text-center"
                 />
               </div>
             </div>
 
             <button
-              onClick={() => navigate("/onboarding/3")}
+              onClick={handleNext}
               className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2"
             >
               Lanjutkan

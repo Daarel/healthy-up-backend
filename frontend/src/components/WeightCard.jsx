@@ -1,70 +1,36 @@
-import { Scale, TrendingDown, TrendingUp, Plus, Lock, Target } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { TrendingDown, TrendingUp, ArrowRight } from "lucide-react";
 
 /**
  * Kartu ringkasan berat badan untuk Dashboard.
  *
  * Props:
- *  - currentWeight  {number}
- *  - weightDiff     {number}   selisih vs sebelumnya (negatif = turun)
- *  - weightProgress {number}   0–100, persentase menuju target
- *  - targetWeight   {number}
- *  - isLoggedToday  {boolean}  kunci tombol input jika sudah dicatat hari ini
- *  - onAddClick     {fn}       buka modal input
- *  - onTargetClick  {fn}       buka modal ubah target (opsional)
+ *  - currentWeight    {number}
+ *  - weightDiff       {number}  selisih vs sebelumnya (negatif = turun)
+ *  - targetWeight     {number}
+ *  - isLoggedThisWeek {boolean}
  */
 export default function WeightCard({
   currentWeight,
   weightDiff,
-  weightProgress,
   targetWeight,
-  isLoggedToday,
-  onAddClick,
-  onTargetClick,
+  isLoggedThisWeek,
 }) {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(34,197,94,0.08)] border border-[#e5eeff]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-[#191c20] font-lexend">Berat Badan</h3>
-        <div className="flex items-center gap-2">
-          {onTargetClick && (
-            <button
-              type="button"
-              onClick={onTargetClick}
-              aria-label="Ubah target berat badan"
-              title="Ubah target berat badan"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6d7b6c] hover:bg-[#e5eeff] hover:text-[#006e2f] transition-colors"
-            >
-              <Target className="w-4 h-4" />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onAddClick}
-            disabled={isLoggedToday}
-            aria-label={
-              isLoggedToday
-                ? "Berat badan hari ini sudah dicatat"
-                : "Tambah berat badan"
-            }
-            title={
-              isLoggedToday
-                ? "Berat badan hari ini sudah dicatat. Coba lagi besok."
-                : "Catat berat badan hari ini"
-            }
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-              isLoggedToday
-                ? "bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed"
-                : "text-[#006e2f] hover:bg-[#006e2f] hover:text-white"
-            }`}
-          >
-            {isLoggedToday ? (
-              <Lock className="w-4 h-4" />
-            ) : (
-              <Plus className="w-4 h-4" />
-            )}
-          </button>
-         
-        </div>
+        <button
+          type="button"
+          onClick={() => navigate("/profil")}
+          aria-label="Lihat detail berat badan"
+          className="flex items-center gap-1 text-xs text-[#006e2f] font-semibold font-jakarta hover:underline"
+        >
+          Lihat Detail
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       <div className="mb-4">
@@ -74,37 +40,32 @@ export default function WeightCard({
         <span className="text-[#6d7b6c] ml-1 font-jakarta">kg</span>
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
-        {weightDiff <= 0 ? (
-          <span className="flex items-center gap-1 text-green-600 font-medium">
-            <TrendingDown className="w-4 h-4" />
-            {weightDiff.toFixed(1)} kg
-          </span>
-        ) : (
-          <span className="flex items-center gap-1 text-red-600 font-medium">
-            <TrendingUp className="w-4 h-4" />
-            +{weightDiff.toFixed(1)} kg
-          </span>
-        )}
-        <span className="text-[#6d7b6c] font-jakarta">vs sebelumnya</span>
-      </div>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 text-sm">
+          {weightDiff <= 0 ? (
+            <span className="flex items-center gap-1 text-green-600 font-medium">
+              <TrendingDown className="w-5 h-5" />
+              {weightDiff.toFixed(1)} kg
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-red-600 font-medium">
+              <TrendingUp className="w-5 h-5" />
+              +{weightDiff.toFixed(1)} kg
+            </span>
+          )}
+          <span className="text-[#6d7b6c] text-sm font-jakarta">vs sebelumnya</span>
+        </div>
 
-      <div className="mt-4 h-2 bg-[#e5eeff] rounded-full overflow-hidden">
-        <div
-          className="h-full bg-[#006e2f]  rounded-full transition-all"
-          style={{ width: `${weightProgress}%` }}
-        />
-      </div>
-
-      <div className="flex items-center justify-between mt-2">
-        <p className="text-xs text-[#6d7b6c] font-jakarta">
-          Target: {targetWeight} kg
-        </p>
-        {isLoggedToday && (
-          <span className="text-[10px] font-semibold text-[#006e2f] bg-[#e5eeff] px-2 py-0.5 rounded-full font-jakarta">
-            Sudah dicatat hari ini
-          </span>
-        )}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-[#6d7b6c] font-jakarta">
+            Target: {targetWeight} kg
+          </p>
+          {isLoggedThisWeek && (
+            <span className="text-[10px] font-semibold text-[#006e2f] bg-[#e5eeff] px-2 py-0.5 rounded-full font-jakarta">
+              Sudah dicatat minggu ini
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
