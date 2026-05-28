@@ -1,237 +1,159 @@
 import { z } from 'zod';
 
-import prisma from '../lib/prisma.js';
 import {
   createHealthProfileSchema,
   createWeightLogsSchema,
 } from '../schemas/healthProfileSchema.js';
+import HealthProfileService from '../services/healthProfileService.js';
 
-/**
- * * @desc    Add Health Profile Data User
- * ! @route   POST /api/v1/health-profiles/
- * ? @access  Private
- */
-const createProfile = async (req, res) => {
-  try {
-    const validatedData = createHealthProfileSchema.parse(req.body);
-    const { gender, age, heightCm, weightKg, goalWeight } = validatedData;
+class HealthProfileController {
+  /**
+   * * @desc    Add Health Profile Data User
+   * ! @route   POST /api/v1/health-profiles/
+   * ? @access  Private
+   */
+  static async createProfile(req, res) {
+    try {
+      const validatedData = createHealthProfileSchema.parse(req.body);
+      const userId = req.user.id;
 
-    const userId = req.user.id;
-
-    const profileExists = await prisma.healthProfile.findUnique({
-      where: { userId },
-    });
-
-    if (profileExists) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Profil kesehatan untuk pengguna ini sudah ada',
-      });
-    }
-
-    const newProfile = await prisma.healthProfile.create({
-      data: {
+      const newProfile = await HealthProfileService.createProfile(
         userId,
-        gender,
-        age,
-        heightCm,
-        weightKg,
-        goalWeight,
-      },
-    });
+        validatedData,
+      );
 
-    return res.status(201).json({
-      status: 'success',
-      message: 'Profil kesehatan berhasil disimpan',
-      data: {
-        profile: newProfile,
-      },
-    });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({
-        status: 'fail',
-        errors: err.errors.map((e) => ({
-          field: e.path[0],
-          message: e.message,
-        })),
+      return res.status(201).json({
+        status: 'success',
+        message: 'Profil kesehatan berhasil disimpan',
+        data: { profile: newProfile },
       });
+    } catch (err) {
+      if (err instanceof z.ZodError)
+        return HealthProfileController.handleZodError(err, res);
+
+      if (err.message === 'PROFILE_ALREADY_EXISTS') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Profil kesehatan untuk pengguna ini sudah ada',
+        });
+      }
+
+      return HealthProfileController.handleServerError(
+        err,
+        res,
+        'Error at createProfile',
+      );
     }
-
-    console.error('Error at createProfile:', err);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Internal server error',
-    });
   }
-};
 
-/**
- * * @desc    Get User Calories Data
- * ! @route   GET /api/v1/health-profiles/calories-summary
- * ? @access  Private
- */
-const getCaloriesSummary = async (req, res) => {
-  try {
-    const userId = req.user.id;
+  /**
+   * * @desc    Get User Calories Data
+   * ! @route   GET /api/v1/health-profiles/calories-summary
+   * ? @access  Private
+   */
+  static async getCaloriesSummary(req, res) {
+    try {
+      const userId = req.user.id;
+      const summaryData = await HealthProfileService.getCaloriesSummary(userId);
 
-    const now = new Date();
+      return res.status(200).json({
+        status: 'success',
+        data: summaryData,
+      });
+    } catch (err) {
+      return HealthProfileController.handleServerError(
+        err,
+        res,
+        'Gagal mengambil data dashboard summary',
+      );
+    }
+  }
 
-    const startOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    );
+  /**
+   * * @desc    Get User Daily Weight Loss
+   * ! @route   GET /api/v1/health-profiles/weight-logs
+   * ? @access  Private
+   */
+  static async getWeightLog(req, res) {
+    try {
+      const userId = req.user.id;
+      const weightLogs = await HealthProfileService.getWeightLogs(userId);
 
-    const startOfWeek = new Date(startOfToday);
-    startOfWeek.setDate(startOfWeek.getDate() - 7);
+      return res.status(200).json({
+        status: 'success',
+        data: { weightLogs },
+      });
+    } catch (err) {
+      return HealthProfileController.handleServerError(
+        err,
+        res,
+        'Gagal fetch weight logs',
+      );
+    }
+  }
 
-    const [dailyPhysical, weeklyPhysical, healthProfile] = await Promise.all([
-      // Kalori terbakar hari ini
-      prisma.mission.aggregate({
-        _sum: { caloriesImpact: true },
-        where: {
+  /**
+   * * @desc    Add User Daily Weight Loss
+   * ! @route   POST /api/v1/health-profiles/weight-logs
+   * ? @access  Private
+   */
+  static async createWeightLog(req, res) {
+    try {
+      const { weight } = createWeightLogsSchema.parse(req.body);
+      const userId = req.user.id;
+
+      const { newWeightLog, updatedHealthProfile } =
+        await HealthProfileService.createWeightLogAndUpdateProfile(
           userId,
-          category: 'physical',
-          status: 'completed',
-          completedAt: { gte: startOfToday },
-        },
-      }),
+          weight,
+        );
 
-      // Kalori terbakar minggu ini
-      prisma.mission.aggregate({
-        _sum: { caloriesImpact: true },
-        where: {
-          userId,
-          category: 'physical',
-          status: 'completed',
-          completedAt: { gte: startOfWeek },
-        },
-      }),
-
-      prisma.healthProfile.findUnique({
-        where: { userId },
-        select: { goalWeight: true },
-      }),
-    ]);
-
-    const burnedToday = dailyPhysical._sum.caloriesImpact || 0;
-    const burnedWeekly = weeklyPhysical._sum.caloriesImpact || 0;
-
-    return res.status(200).json({
-      status: 'success',
-      data: {
-        calories: {
-          burnedToday,
-          burnedWeekly,
-        },
-        profile: healthProfile,
-      },
-    });
-  } catch (err) {
-    console.error('Error fetching dashboard summary:', err);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Gagal mengambil data dashboard',
-    });
-  }
-};
-
-/**
- * * @desc    Get User Daily Weight Loss
- * ! @route   GET /api/v1/health-profiles/weight-logs
- * ? @access  Private
- */
-const getWeightLog = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const weightLogs = await prisma.weightLog.findMany({
-      where: {
-        userId: userId,
-      },
-      orderBy: {
-        loggedAt: 'desc',
-      },
-      select: {
-        id: true,
-        weight: true,
-        loggedAt: true,
-      },
-    });
-
-    return res.status(200).json({
-      status: 'success',
-      data: {
-        weightLogs: weightLogs,
-      },
-    });
-  } catch (err) {
-    console.error('Gagal fetch weight logs:', err);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Gagal mengambil eiwayat berat badan',
-    });
-  }
-};
-
-/**
- * * @desc    Add User Daily Weight Loss
- * ! @route   POST /api/v1/health-profiles/weight-logs
- * ? @access  Private
- */
-const createWeightLog = async (req, res) => {
-  try {
-    const validatedData = createWeightLogsSchema.parse(req.body);
-    const userId = req.user.id;
-
-    const [newWeightLog, updatedHealthProfile] = await prisma.$transaction([
-      prisma.weightLog.create({
+      return res.status(201).json({
+        status: 'success',
+        message:
+          'Berat badan berhasil dicatat dan profil kesehatan telah diperbarui!',
         data: {
-          userId: userId,
-          weight: validatedData.weight,
+          weightLog: newWeightLog,
+          currentWeight: updatedHealthProfile.weight,
         },
-      }),
-
-      prisma.healthProfile.update({
-        where: { userId: userId },
-        data: { weight: validatedData.weight },
-      }),
-    ]);
-
-    return res.status(201).json({
-      status: 'success',
-      message:
-        'Berat badan berhasil dicatat dan profil kesehatan telah diperbarui!',
-      data: {
-        weightLog: newWeightLog,
-        currentWeight: updatedHealthProfile.weight,
-      },
-    });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({
-        status: 'fail',
-        errors: err.errors.map((e) => ({
-          field: e.path[0],
-          message: e.message,
-        })),
       });
-    }
+    } catch (err) {
+      if (err instanceof z.ZodError)
+        return HealthProfileController.handleZodError(err, res);
 
-    if (err.code === 'P2025') {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Profil kesehatan belum dibuat untuk pengguna ini.',
-      });
-    }
+      if (err.code === 'P2025') {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Profil kesehatan belum dibuat untuk pengguna ini.',
+        });
+      }
 
-    console.error('Error creating weight log:', err);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Terjadi kesalahan pada server saat menyimpan data',
+      return HealthProfileController.handleServerError(
+        err,
+        res,
+        'Error creating weight log',
+      );
+    }
+  }
+
+  // --- Helper Methods ---
+  static handleZodError(err, res) {
+    return res.status(400).json({
+      status: 'fail',
+      errors: err.errors.map((e) => ({
+        field: e.path[0],
+        message: e.message,
+      })),
     });
   }
-};
 
-export { createProfile, createWeightLog, getCaloriesSummary, getWeightLog };
+  static handleServerError(err, res, contextMsg = 'Internal server error') {
+    console.error(`HealthProfileController Error (${contextMsg}):`, err);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Terjadi kesalahan pada server saat memproses permintaan.',
+    });
+  }
+}
+
+export default HealthProfileController;
