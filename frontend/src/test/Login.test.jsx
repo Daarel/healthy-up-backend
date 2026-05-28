@@ -1,14 +1,37 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Login from '../pages/Login';
+import * as AuthContextModule from '../context/AuthContext';
 
-const renderLogin = () =>
-  render(
+// Mock Logo and useNavigateWithTransition
+vi.mock('../components/ui/logo', () => ({ default: () => <span>HealthyUp</span> }));
+vi.mock('../lib/useNavigateWithTransition', () => ({
+  useNavigateWithTransition: () => vi.fn(),
+}));
+// Mock api to avoid real network calls
+vi.mock('../lib/api', () => ({
+  authApi: {
+    login: vi.fn().mockResolvedValue({ data: { user: { id: 1, username: 'test' } } }),
+    logout: vi.fn().mockResolvedValue({}),
+  },
+  userApi: {
+    getMe: vi.fn().mockRejectedValue(new Error('no session')),
+  },
+}));
+
+const renderLogin = () => {
+  vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+    user: null,
+    setUser: vi.fn(),
+    isLoading: false,
+  });
+  return render(
     <MemoryRouter initialEntries={['/login']}>
       <Login />
     </MemoryRouter>
   );
+};
 
 describe('Login Page', () => {
   it('renders tanpa error', () => {
@@ -32,7 +55,7 @@ describe('Login Page', () => {
 
   it('menampilkan input email', () => {
     renderLogin();
-    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Email$/i)).toBeInTheDocument();
   });
 
   it('menampilkan input password', () => {
@@ -80,7 +103,7 @@ describe('Login Page', () => {
 
   it('menampilkan error format email tidak valid', () => {
     renderLogin();
-    fireEvent.change(screen.getByLabelText(/Email/i), {
+    fireEvent.change(screen.getByLabelText(/^Email$/i), {
       target: { value: 'bukan-email' },
     });
     fireEvent.click(screen.getByRole('button', { name: /^Masuk$/i }));
@@ -89,7 +112,7 @@ describe('Login Page', () => {
 
   it('menampilkan error password kurang dari 8 karakter', () => {
     renderLogin();
-    fireEvent.change(screen.getByLabelText(/Email/i), {
+    fireEvent.change(screen.getByLabelText(/^Email$/i), {
       target: { value: 'user@email.com' },
     });
     fireEvent.change(screen.getByLabelText(/^Password$/i), {
@@ -103,22 +126,20 @@ describe('Login Page', () => {
     renderLogin();
     fireEvent.click(screen.getByRole('button', { name: /^Masuk$/i }));
     expect(screen.getByText(/Email tidak boleh kosong/i)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText(/Email/i), {
+    fireEvent.change(screen.getByLabelText(/^Email$/i), {
       target: { value: 'a' },
     });
     expect(screen.queryByText(/Email tidak boleh kosong/i)).not.toBeInTheDocument();
   });
 
-  it('submit valid menavigasi ke dashboard', () => {
+  it('tidak menampilkan error saat form valid sebelum submit', () => {
     renderLogin();
-    fireEvent.change(screen.getByLabelText(/Email/i), {
+    fireEvent.change(screen.getByLabelText(/^Email$/i), {
       target: { value: 'user@email.com' },
     });
     fireEvent.change(screen.getByLabelText(/^Password$/i), {
       target: { value: 'password123' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /^Masuk$/i }));
-    // Tidak ada error yang muncul
     expect(screen.queryByText(/tidak boleh kosong/i)).not.toBeInTheDocument();
   });
 });

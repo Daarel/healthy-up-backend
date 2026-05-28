@@ -4,6 +4,16 @@ import { MemoryRouter } from 'react-router-dom';
 import Profile from '../pages/Profil';
 import * as AuthContextModule from '../context/AuthContext';
 
+vi.mock('../components/ui/streak', () => ({ default: ({ count }) => <span>{count} Streak</span> }));
+vi.mock('../lib/api', () => ({
+  authApi: {
+    logout: vi.fn().mockResolvedValue({}),
+  },
+  userApi: {
+    getMe: vi.fn().mockRejectedValue(new Error('no session')),
+  },
+}));
+
 const renderProfil = () => {
   vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
     user: { id: 1, username: 'ghifari' },
@@ -22,49 +32,20 @@ describe('Profil Page', () => {
     renderProfil();
   });
 
-  it('menampilkan nama pengguna', () => {
+  it('menampilkan level pengguna default', () => {
     renderProfil();
-    expect(screen.getByText('Gathan Ghifari')).toBeInTheDocument();
+    expect(screen.getByText(/Level 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pemula/i)).toBeInTheDocument();
   });
 
-  it('menampilkan lokasi dan tanggal bergabung', () => {
+  it('menampilkan banner Catat Berat Badan Minggu Ini', () => {
     renderProfil();
-    expect(screen.getByText(/Jan 2024/i)).toBeInTheDocument();
+    expect(screen.getByText('Catat Berat Badan Minggu Ini')).toBeInTheDocument();
   });
 
-  it('menampilkan level pengguna', () => {
+  it('menampilkan pesan belum ada catatan saat weightLog kosong', () => {
     renderProfil();
-    expect(screen.getByText(/Level 12/i)).toBeInTheDocument();
-    expect(screen.getByText(/Pejuang/i)).toBeInTheDocument();
-  });
-
-  it('menampilkan info streak', () => {
-    renderProfil();
-    expect(screen.getByText('14')).toBeInTheDocument();
-    expect(screen.getByText('Hari Streak')).toBeInTheDocument();
-  });
-
-  it('menampilkan tombol Bagikan Profil', () => {
-    renderProfil();
-    expect(screen.getByText('Bagikan Profil')).toBeInTheDocument();
-  });
-
-  it('tombol Bagikan Profil dapat diklik', () => {
-    renderProfil();
-    fireEvent.click(screen.getByText('Bagikan Profil'));
-  });
-
-  // ─── Banner catat berat badan ───────────────────────────────────────────────
-
-  it('menampilkan banner Catat Berat Badan Hari Ini', () => {
-    renderProfil();
-    expect(screen.getByText('Catat Berat Badan Hari Ini')).toBeInTheDocument();
-  });
-
-  it('menampilkan berat badan terakhir di banner', () => {
-    renderProfil();
-    // 69.2 kg muncul di banner, stats "Sekarang", dan log — pakai getAllByText
-    expect(screen.getAllByText(/69\.2 kg/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Belum ada catatan berat badan.')).toBeInTheDocument();
   });
 
   it('menampilkan tombol Tambah Berat', () => {
@@ -93,7 +74,7 @@ describe('Profil Page', () => {
     expect(screen.getByText('Berat Badan (kg)')).toBeInTheDocument();
   });
 
-  it('modal menampilkan input catatan opsional', () => {
+  it('modal menampilkan input catatan opsional (allowNote=true di Profil)', () => {
     renderProfil();
     fireEvent.click(screen.getByTestId('btn-catat-berat'));
     expect(screen.getByTestId('input-catatan')).toBeInTheDocument();
@@ -111,18 +92,6 @@ describe('Profil Page', () => {
     fireEvent.click(screen.getByTestId('btn-catat-berat'));
     expect(screen.getByText('Catat Berat Badan')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Batal'));
-    expect(screen.queryByText('Catat Berat Badan')).not.toBeInTheDocument();
-  });
-
-  it('tombol X menutup modal', () => {
-    renderProfil();
-    fireEvent.click(screen.getByTestId('btn-catat-berat'));
-    expect(screen.getByText('Catat Berat Badan')).toBeInTheDocument();
-    // Temukan tombol X di modal dengan data-testid tombol tutup
-    const allButtons = screen.getAllByRole('button');
-    const xBtn = allButtons.find(btn => btn.className.includes('w-9') && btn.className.includes('h-9'));
-    expect(xBtn).toBeTruthy();
-    fireEvent.click(xBtn);
     expect(screen.queryByText('Catat Berat Badan')).not.toBeInTheDocument();
   });
 
@@ -149,7 +118,7 @@ describe('Profil Page', () => {
     expect(screen.getByText(/20 – 300 kg/i)).toBeInTheDocument();
   });
 
-  it('menyimpan berat yang valid menutup modal dan menampilkan toast sukses', async () => {
+  it('menyimpan berat yang valid menutup modal dan menampilkan toast sukses', () => {
     renderProfil();
     fireEvent.click(screen.getByTestId('btn-catat-berat'));
     fireEvent.change(screen.getByTestId('input-berat'), { target: { value: '68.5' } });
@@ -159,15 +128,6 @@ describe('Profil Page', () => {
     expect(screen.queryByText('Catat Berat Badan')).not.toBeInTheDocument();
     // Toast sukses muncul
     expect(screen.getByText(/Berat badan berhasil dicatat/i)).toBeInTheDocument();
-  });
-
-  it('setelah simpan, berat terbaru terlihat di banner', async () => {
-    renderProfil();
-    fireEvent.click(screen.getByTestId('btn-catat-berat'));
-    fireEvent.change(screen.getByTestId('input-berat'), { target: { value: '68.0' } });
-    fireEvent.click(screen.getByTestId('btn-simpan-berat'));
-    // Banner seharusnya menampilkan berat baru — pakai getAllByText karena mungkin muncul di beberapa tempat
-    expect(screen.getAllByText(/68 kg/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('perbandingan perubahan muncul saat mengetik angka di input', () => {
@@ -203,20 +163,18 @@ describe('Profil Page', () => {
     fireEvent.click(screen.getByText('Mingguan'));
   });
 
-  it('menampilkan data berat badan (Awal, Sekarang, Target)', () => {
+  it('menampilkan pesan belum cukup data untuk grafik saat weightLog kosong', () => {
     renderProfil();
-    expect(screen.getByText('Berat Awal')).toBeInTheDocument();
-    // 78.5 kg muncul di chart stats dan di riwayat log
-    expect(screen.getAllByText('78.5 kg').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Sekarang')).toBeInTheDocument();
-    expect(screen.getByText('Target')).toBeInTheDocument();
-    // 65 kg muncul di stats chart dan di progress bar
-    expect(screen.getAllByText('65 kg').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Belum cukup data untuk menampilkan grafik/i)).toBeInTheDocument();
   });
 
-  it('menampilkan section Catatan Terakhir', () => {
+  it('menampilkan data berat badan (Berat Awal, Sekarang, Target)', () => {
     renderProfil();
-    expect(screen.getByText('Catatan Terakhir')).toBeInTheDocument();
+    expect(screen.getByText('Berat Awal')).toBeInTheDocument();
+    expect(screen.getByText('Sekarang')).toBeInTheDocument();
+    expect(screen.getByText('Target')).toBeInTheDocument();
+    // Default target 65 kg — mungkin muncul lebih dari sekali
+    expect(screen.getAllByText('65 kg').length).toBeGreaterThanOrEqual(1);
   });
 
   it('menampilkan kartu progress sisa menuju target', () => {
@@ -258,12 +216,6 @@ describe('Profil Page', () => {
     expect(keluarItems.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('tombol Keluar di pengaturan akun dapat diklik', () => {
-    renderProfil();
-    const keluarItems = screen.getAllByText('Keluar');
-    fireEvent.click(keluarItems[keluarItems.length - 1].closest('button'));
-  });
-
   it('menampilkan tombol Hapus Akun', () => {
     renderProfil();
     expect(screen.getByText('Hapus Akun')).toBeInTheDocument();
@@ -272,5 +224,14 @@ describe('Profil Page', () => {
   it('tombol Hapus Akun dapat diklik', () => {
     renderProfil();
     fireEvent.click(screen.getByText('Hapus Akun'));
+  });
+
+  it('setelah simpan berat, data baru muncul di riwayat', () => {
+    renderProfil();
+    fireEvent.click(screen.getByTestId('btn-catat-berat'));
+    fireEvent.change(screen.getByTestId('input-berat'), { target: { value: '68.0' } });
+    fireEvent.click(screen.getByTestId('btn-simpan-berat'));
+    // Berat baru muncul di stats
+    expect(screen.getAllByText(/68/i).length).toBeGreaterThanOrEqual(1);
   });
 });

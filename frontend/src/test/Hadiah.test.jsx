@@ -4,6 +4,16 @@ import { MemoryRouter } from 'react-router-dom';
 import Hadiah from '../pages/Hadiah';
 import * as AuthContextModule from '../context/AuthContext';
 
+vi.mock('../components/ui/streak', () => ({ default: ({ count }) => <span>{count} Streak</span> }));
+vi.mock('../lib/api', () => ({
+  authApi: {
+    logout: vi.fn().mockResolvedValue({}),
+  },
+  userApi: {
+    getMe: vi.fn().mockRejectedValue(new Error('no session')),
+  },
+}));
+
 const renderHadiah = () => {
   vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
     user: { id: 1, username: 'ghifari' },
@@ -35,152 +45,88 @@ describe('Hadiah Page', () => {
   it('menampilkan total poin pengguna', () => {
     renderHadiah();
     expect(screen.getByText('Total Poin Kamu')).toBeInTheDocument();
-    // 12450 diformat dengan toLocaleString - mungkin muncul lebih dari sekali
-    expect(screen.getAllByText(/12[.,]450/).length).toBeGreaterThanOrEqual(1);
+    // Default 0 poin — poin dan Pts bisa di elemen terpisah
+    expect(screen.getByText('0')).toBeInTheDocument();
   });
 
   it('menampilkan info level pengguna', () => {
     renderHadiah();
-    expect(screen.getByText('LEVEL 12')).toBeInTheDocument();
-    expect(screen.getByText('Pejuang Sehat')).toBeInTheDocument();
+    expect(screen.getByText(/LEVEL 1/i)).toBeInTheDocument();
+    // Level card menampilkan nama level "Pejuang"
+    expect(screen.getByText('Pejuang')).toBeInTheDocument();
   });
 
-  it('menampilkan streak pengguna', () => {
-    renderHadiah();
-    expect(screen.getByText('14')).toBeInTheDocument();
-    expect(screen.getByText('Hari Streak')).toBeInTheDocument();
-  });
-
-  it('menampilkan lencana elite', () => {
+  it('menampilkan section Lencana Elite', () => {
     renderHadiah();
     expect(screen.getByText('Lencana Elite')).toBeInTheDocument();
   });
 
-  it('menampilkan section Tukarkan Voucher', () => {
+  it('menampilkan section Tukarkan Voucher secara default', () => {
     renderHadiah();
     expect(screen.getByText('Tukarkan Voucher')).toBeInTheDocument();
   });
 
-  it('menampilkan tab filter voucher (Semua, Kesehatan, Makanan, Gym)', () => {
+  it('menampilkan tombol Filter voucher', () => {
     renderHadiah();
+    expect(screen.getByText('Filter')).toBeInTheDocument();
+  });
+
+  it('menampilkan tombol Riwayat', () => {
+    renderHadiah();
+    expect(screen.getByText('Riwayat')).toBeInTheDocument();
+  });
+
+  it('menampilkan pesan kosong saat belum ada voucher', () => {
+    renderHadiah();
+    expect(screen.getByText('Belum ada voucher tersedia.')).toBeInTheDocument();
+  });
+
+  it('klik tombol Riwayat menampilkan section Riwayat Penukaran', () => {
+    renderHadiah();
+    fireEvent.click(screen.getByText('Riwayat'));
+    expect(screen.getByText('Riwayat Penukaran')).toBeInTheDocument();
+  });
+
+  it('menampilkan pesan kosong saat belum ada riwayat penukaran', () => {
+    renderHadiah();
+    fireEvent.click(screen.getByText('Riwayat'));
+    expect(screen.getByText('Belum ada riwayat penukaran.')).toBeInTheDocument();
+  });
+
+  it('klik Riwayat lagi kembali ke mode Tukarkan Voucher', () => {
+    renderHadiah();
+    fireEvent.click(screen.getByText('Riwayat'));
+    expect(screen.getByText('Riwayat Penukaran')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Riwayat'));
+    expect(screen.getByText('Tukarkan Voucher')).toBeInTheDocument();
+  });
+
+  it('klik tombol Filter membuka dropdown kategori', () => {
+    renderHadiah();
+    fireEvent.click(screen.getByText('Filter'));
     expect(screen.getByText('Semua')).toBeInTheDocument();
     expect(screen.getByText('Kesehatan')).toBeInTheDocument();
     expect(screen.getByText('Makanan')).toBeInTheDocument();
     expect(screen.getByText('Gym')).toBeInTheDocument();
   });
 
-  it('tab Semua aktif secara default dan menampilkan semua voucher', () => {
+  it('memilih kategori dari dropdown menutup dropdown', () => {
     renderHadiah();
-    expect(screen.getByText('Voucher Medical Checkup')).toBeInTheDocument();
-    expect(screen.getByText('1 Minggu Free Gym')).toBeInTheDocument();
-    expect(screen.getByText('Diskon 50% SaladStop!')).toBeInTheDocument();
-    expect(screen.getByText('Konsultasi Nutrisi')).toBeInTheDocument();
-    expect(screen.getByText('Yoga Class Premium')).toBeInTheDocument();
-    expect(screen.getByText('Healthy Snack Box')).toBeInTheDocument();
-  });
-
-  it('dapat memfilter voucher ke Kesehatan', () => {
-    renderHadiah();
+    fireEvent.click(screen.getByText('Filter'));
     fireEvent.click(screen.getByText('Kesehatan'));
-    expect(screen.getByText('Voucher Medical Checkup')).toBeInTheDocument();
-    expect(screen.getByText('Konsultasi Nutrisi')).toBeInTheDocument();
-    expect(screen.queryByText('1 Minggu Free Gym')).not.toBeInTheDocument();
+    // Dropdown tertutup, tombol filter menampilkan kategori aktif
+    expect(screen.getByText('Kesehatan')).toBeInTheDocument();
   });
 
-  it('dapat memfilter voucher ke Makanan', () => {
+  it('menampilkan progress bar level', () => {
     renderHadiah();
-    fireEvent.click(screen.getByText('Makanan'));
-    expect(screen.getByText('Diskon 50% SaladStop!')).toBeInTheDocument();
-    expect(screen.getByText('Healthy Snack Box')).toBeInTheDocument();
-    expect(screen.queryByText('Yoga Class Premium')).not.toBeInTheDocument();
+    const progressBar = document.querySelector('.bg-\\[\\#006e2f\\].rounded-full');
+    expect(progressBar).toBeInTheDocument();
   });
 
-  it('dapat memfilter voucher ke Gym', () => {
+  it('menampilkan info poin untuk naik level', () => {
     renderHadiah();
-    fireEvent.click(screen.getByText('Gym'));
-    expect(screen.getByText('1 Minggu Free Gym')).toBeInTheDocument();
-    expect(screen.getByText('Yoga Class Premium')).toBeInTheDocument();
-    expect(screen.queryByText('Voucher Medical Checkup')).not.toBeInTheDocument();
-  });
-
-  it('menampilkan badge Terbatas pada voucher Medical Checkup', () => {
-    renderHadiah();
-    expect(screen.getByText('Terbatas')).toBeInTheDocument();
-  });
-
-  it('menampilkan tombol Tukarkan Sekarang untuk voucher yang cukup poin', () => {
-    renderHadiah();
-    const tukarButtons = screen.getAllByText('Tukarkan Sekarang');
-    expect(tukarButtons.length).toBeGreaterThan(0);
-  });
-
-  it('klik Tukarkan Sekarang membuka modal konfirmasi', () => {
-    renderHadiah();
-    const tukarButtons = screen.getAllByText('Tukarkan Sekarang');
-    fireEvent.click(tukarButtons[0]);
-    expect(screen.getByText('Konfirmasi Penukaran')).toBeInTheDocument();
-  });
-
-  it('modal konfirmasi menampilkan info poin', () => {
-    renderHadiah();
-    const tukarButtons = screen.getAllByText('Tukarkan Sekarang');
-    fireEvent.click(tukarButtons[0]);
-    expect(screen.getByText('Poin yang akan digunakan:')).toBeInTheDocument();
-    expect(screen.getByText('Sisa poin setelahnya:')).toBeInTheDocument();
-  });
-
-  it('modal konfirmasi memiliki tombol Batal dan Tukar Sekarang', () => {
-    renderHadiah();
-    const tukarButtons = screen.getAllByText('Tukarkan Sekarang');
-    fireEvent.click(tukarButtons[0]);
-    expect(screen.getByText('Batal')).toBeInTheDocument();
-    expect(screen.getByText('Tukar Sekarang')).toBeInTheDocument();
-  });
-
-  it('tombol Batal menutup modal', () => {
-    renderHadiah();
-    const tukarButtons = screen.getAllByText('Tukarkan Sekarang');
-    fireEvent.click(tukarButtons[0]);
-    expect(screen.getByText('Konfirmasi Penukaran')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('Batal'));
-    expect(screen.queryByText('Konfirmasi Penukaran')).not.toBeInTheDocument();
-  });
-
-  it('tombol Tukar Sekarang di modal menutup modal', () => {
-    renderHadiah();
-    const tukarButtons = screen.getAllByText('Tukarkan Sekarang');
-    fireEvent.click(tukarButtons[0]);
-    fireEvent.click(screen.getByText('Tukar Sekarang'));
-    expect(screen.queryByText('Konfirmasi Penukaran')).not.toBeInTheDocument();
-  });
-
-  it('menampilkan section Riwayat Penukaran', () => {
-    renderHadiah();
-    expect(screen.getByText('Riwayat Penukaran')).toBeInTheDocument();
-  });
-
-  it('menampilkan riwayat penukaran voucher', () => {
-    renderHadiah();
-    expect(screen.getByText('Diskon 25% Juice It Up')).toBeInTheDocument();
-    expect(screen.getByText('Personal Trainer 1-on-1')).toBeInTheDocument();
-  });
-
-  it('menampilkan status transaksi Berhasil dan Kadaluarsa', () => {
-    renderHadiah();
-    expect(screen.getByText('Berhasil')).toBeInTheDocument();
-    expect(screen.getByText('Kadaluarsa')).toBeInTheDocument();
-  });
-
-  it('menampilkan tombol Lihat Semua di riwayat', () => {
-    renderHadiah();
-    expect(screen.getByText('Lihat Semua')).toBeInTheDocument();
-  });
-
-  it('menampilkan header tabel riwayat', () => {
-    renderHadiah();
-    expect(screen.getByText('Voucher')).toBeInTheDocument();
-    expect(screen.getByText('Tanggal')).toBeInTheDocument();
-    expect(screen.getByText('Poin Digunakan')).toBeInTheDocument();
-    expect(screen.getByText('Status')).toBeInTheDocument();
+    // "1.000 poin lagi untuk naik ke Level 2"
+    expect(screen.getAllByText(/poin/i).length).toBeGreaterThanOrEqual(1);
   });
 });

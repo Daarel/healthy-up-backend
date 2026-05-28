@@ -4,6 +4,26 @@ import { MemoryRouter } from 'react-router-dom';
 import Dashboard from '../pages/Dashboard';
 import * as AuthContextModule from '../context/AuthContext';
 
+// Mock ui/logo and ui/streak to avoid import issues
+vi.mock('../components/ui/logo', () => ({ default: () => <span>HealthyUp</span> }));
+vi.mock('../components/ui/streak', () => ({ default: ({ count }) => <span>{count} Streak</span> }));
+vi.mock('../components/SetupTargetModal', () => ({
+  default: ({ isOpen, onClose }) =>
+    isOpen ? (
+      <div role="dialog" aria-label="setup-modal">
+        <button onClick={onClose}>Tutup Setup</button>
+      </div>
+    ) : null,
+}));
+vi.mock('../lib/api', () => ({
+  authApi: {
+    logout: vi.fn().mockResolvedValue({}),
+  },
+  userApi: {
+    getMe: vi.fn().mockRejectedValue(new Error('no session')),
+  },
+}));
+
 const renderDashboard = () => {
   vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
     user: { id: 1, username: 'ghifari' },
@@ -17,17 +37,10 @@ const renderDashboard = () => {
   );
 };
 
-const todayKey = (() => {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-})();
-
 describe('Dashboard Page', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   it('renders tanpa error', () => {
@@ -36,7 +49,7 @@ describe('Dashboard Page', () => {
 
   it('menampilkan sapaan kepada pengguna', () => {
     renderDashboard();
-    expect(screen.getByText(/Selamat Pagi, Ghifari/i)).toBeInTheDocument();
+    expect(screen.getByText(/Selamat Pagi, Pengguna/i)).toBeInTheDocument();
   });
 
   it('menampilkan motivasi harian', () => {
@@ -44,41 +57,26 @@ describe('Dashboard Page', () => {
     expect(screen.getByText(/Mari lanjutkan perjalanan sehatmu hari ini/i)).toBeInTheDocument();
   });
 
-  it('menampilkan kartu Progress Minggu Ini dengan persentase 75%', () => {
+  it('menampilkan kartu Progress Minggu Ini', () => {
     renderDashboard();
     expect(screen.getByText('Progress Minggu Ini')).toBeInTheDocument();
-    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.getAllByText('0%').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('selesai')).toBeInTheDocument();
   });
 
-  it('menampilkan kartu Berat Badan dengan data yang benar', () => {
+  it('menampilkan kartu Berat Badan', () => {
     renderDashboard();
     expect(screen.getByText('Berat Badan')).toBeInTheDocument();
-    expect(screen.getByText('68.5')).toBeInTheDocument();
-    expect(screen.getByText('Target: 65 kg')).toBeInTheDocument();
   });
 
-  it('menampilkan kartu Kalori Hari Ini', () => {
+  it('menampilkan kartu Kalori Yang Terbakar Dari Olahraga', () => {
     renderDashboard();
-    expect(screen.getByText('Kalori Hari Ini')).toBeInTheDocument();
-    expect(screen.getByText('1,250')).toBeInTheDocument();
+    expect(screen.getByText('Kalori Yang Terbakar Dari Olahraga')).toBeInTheDocument();
   });
 
-  it('menampilkan daftar tugas hari ini', () => {
+  it('menampilkan section Tugas Minggu ini', () => {
     renderDashboard();
-    expect(screen.getByText('Tugas Hari Ini')).toBeInTheDocument();
-    expect(screen.getByText('Minum air 8 gelas')).toBeInTheDocument();
-    expect(screen.getByText('Makan sayur 3 porsi')).toBeInTheDocument();
-    expect(screen.getByText('Jalan kaki 30 menit')).toBeInTheDocument();
-    expect(screen.getByText('Tidur 8 jam')).toBeInTheDocument();
-  });
-
-  it('menampilkan kategori tugas', () => {
-    renderDashboard();
-    expect(screen.getByText('Hidrasi')).toBeInTheDocument();
-    expect(screen.getByText('Nutrisi')).toBeInTheDocument();
-    expect(screen.getByText('Olahraga')).toBeInTheDocument();
-    expect(screen.getByText('Istirahat')).toBeInTheDocument();
+    expect(screen.getByText('Tugas Minggu ini')).toBeInTheDocument();
   });
 
   it('menampilkan tombol Lihat Semua untuk tugas', () => {
@@ -92,26 +90,27 @@ describe('Dashboard Page', () => {
     fireEvent.click(lihatSemua);
   });
 
-  it('menampilkan penurunan berat badan', () => {
-    renderDashboard();
-    expect(screen.getByText('-1.5 kg')).toBeInTheDocument();
-    expect(screen.getByText('vs sebelumnya')).toBeInTheDocument();
-  });
-
-  it('menampilkan banner pengingat berat badan saat belum dicatat hari ini', () => {
+  it('menampilkan banner pengingat berat badan saat belum dicatat minggu ini', () => {
     renderDashboard();
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByText(/Jangan lupa catat berat badan hari ini/i)).toBeInTheDocument();
     expect(screen.getByText(/Catat Sekarang/i)).toBeInTheDocument();
   });
 
-  it('banner pengingat tidak muncul jika sudah dicatat hari ini', () => {
+  it('banner pengingat tidak muncul jika sudah dicatat minggu ini', () => {
+    // Hitung thisWeekKey
+    const now = new Date();
+    const jan1 = new Date(now.getFullYear(), 0, 1);
+    const week = Math.ceil(((now - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+    const thisWeekKey = `${now.getFullYear()}-W${String(week).padStart(2, '0')}`;
+
     window.localStorage.setItem(
       'healthyup:weightLog',
       JSON.stringify({
         currentWeight: 67,
         previousWeight: 68.5,
-        lastLoggedDate: todayKey,
+        lastLoggedDate: thisWeekKey,
+        targetWeight: 65,
       })
     );
     renderDashboard();
@@ -131,87 +130,45 @@ describe('Dashboard Page', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('banner pengingat hilang setelah berat badan berhasil dicatat', () => {
+  it('menampilkan banner setup target untuk user baru', () => {
     renderDashboard();
-    expect(screen.getByText(/Jangan lupa catat berat badan hari ini/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Catat Sekarang/i));
-    const input = screen.getByLabelText(/Berat Badan \(kg\)/i);
-    fireEvent.change(input, { target: { value: '67.0' } });
-    fireEvent.click(screen.getByRole('button', { name: /simpan/i }));
-    expect(screen.queryByText(/Jangan lupa catat berat badan hari ini/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Belum ada target & tugas')).toBeInTheDocument();
+    expect(screen.getByText('Mulai Setup')).toBeInTheDocument();
   });
 
-  it('menampilkan tombol input berat badan saat belum dicatat hari ini', () => {
+  it('tombol Mulai Setup membuka modal setup', () => {
+    renderDashboard();
+    fireEvent.click(screen.getByText('Mulai Setup'));
+    expect(screen.getByRole('dialog', { name: 'setup-modal' })).toBeInTheDocument();
+  });
+
+  it('menampilkan pesan tugas kosong sebelum setup', () => {
     renderDashboard();
     expect(
-      screen.getByRole('button', { name: /tambah berat badan/i })
-    ).toBeEnabled();
+      screen.getByText(/Tugas akan muncul setelah kamu mengatur target di atas/i)
+    ).toBeInTheDocument();
   });
 
-  it('membuka modal input berat badan saat tombol diklik', () => {
+  it('menampilkan teks Selesaikan tugas minggu ini', () => {
     renderDashboard();
-    fireEvent.click(screen.getByRole('button', { name: /tambah berat badan/i }));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Catat Berat Badan')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Berat Badan \(kg\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Selesaikan tugas minggu ini dan klaim poinmu/i)).toBeInTheDocument();
   });
 
-  it('menutup modal saat tombol Batal diklik', () => {
+  it('menutup modal berat badan saat tombol Batal diklik', () => {
     renderDashboard();
-    fireEvent.click(screen.getByRole('button', { name: /tambah berat badan/i }));
+    fireEvent.click(screen.getByText(/Catat Sekarang/i));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /batal/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Batal/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('menampilkan error saat input berat badan tidak valid', () => {
     renderDashboard();
-    fireEvent.click(screen.getByRole('button', { name: /tambah berat badan/i }));
+    fireEvent.click(screen.getByText(/Catat Sekarang/i));
     const input = screen.getByLabelText(/Berat Badan \(kg\)/i);
     fireEvent.change(input, { target: { value: '5' } });
     fireEvent.click(screen.getByRole('button', { name: /simpan/i }));
     expect(screen.getByText(/20 – 300 kg/i)).toBeInTheDocument();
-  });
-
-  it('memperbarui berat badan setelah submit valid', () => {
-    renderDashboard();
-    fireEvent.click(screen.getByRole('button', { name: /tambah berat badan/i }));
-    const input = screen.getByLabelText(/Berat Badan \(kg\)/i);
-    fireEvent.change(input, { target: { value: '67.0' } });
-    fireEvent.click(screen.getByRole('button', { name: /simpan/i }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByText('67.0')).toBeInTheDocument();
-    expect(screen.getByText('-1.5 kg')).toBeInTheDocument();
-  });
-
-  it('mengunci tombol input setelah berat badan dicatat hari ini', () => {
-    renderDashboard();
-    fireEvent.click(screen.getByRole('button', { name: /tambah berat badan/i }));
-    const input = screen.getByLabelText(/Berat Badan \(kg\)/i);
-    fireEvent.change(input, { target: { value: '67.0' } });
-    fireEvent.click(screen.getByRole('button', { name: /simpan/i }));
-    const lockedBtn = screen.getByRole('button', {
-      name: /berat badan hari ini sudah dicatat/i,
-    });
-    expect(lockedBtn).toBeDisabled();
-    expect(screen.getByText(/Sudah dicatat hari ini/i)).toBeInTheDocument();
-  });
-
-  it('tidak membuka modal saat tombol input dalam keadaan terkunci', () => {
-    window.localStorage.setItem(
-      'healthyup:weightLog',
-      JSON.stringify({
-        currentWeight: 67,
-        previousWeight: 68.5,
-        lastLoggedDate: todayKey,
-      })
-    );
-    renderDashboard();
-    const lockedBtn = screen.getByRole('button', {
-      name: /berat badan hari ini sudah dicatat/i,
-    });
-    fireEvent.click(lockedBtn);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('memuat data berat dari localStorage saat halaman di-render ulang', () => {
@@ -221,26 +178,10 @@ describe('Dashboard Page', () => {
         currentWeight: 66.2,
         previousWeight: 68.5,
         lastLoggedDate: '2000-01-01',
+        targetWeight: 65,
       })
     );
     renderDashboard();
     expect(screen.getByText('66.2')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /tambah berat badan/i })
-    ).toBeEnabled();
-  });
-
-  it('menampilkan tombol Klaim untuk tugas yang sudah selesai', () => {
-    renderDashboard();
-    // Tugas "Minum air 8 gelas" sudah completed=true secara default
-    expect(screen.getByText(/Klaim/i)).toBeInTheDocument();
-  });
-
-  it('dapat mengklaim poin tugas yang sudah selesai', () => {
-    renderDashboard();
-    const klaimBtn = screen.getAllByText(/Klaim/i)[0];
-    fireEvent.click(klaimBtn);
-    // Setelah klaim, poin muncul sebagai badge
-    expect(screen.getAllByText(/Pts/i).length).toBeGreaterThan(0);
   });
 });

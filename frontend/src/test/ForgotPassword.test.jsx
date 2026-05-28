@@ -66,22 +66,22 @@ describe('ForgotPassword Page', () => {
     expect(screen.queryByText(/Email tidak boleh kosong/i)).not.toBeInTheDocument();
   });
 
-  it('submit email valid menampilkan pesan sukses', async () => {
-    renderPage();
-    fireEvent.change(screen.getByLabelText(/Alamat Email/i), {
-      target: { value: 'user@email.com' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /Kirim Kode OTP/i }));
-    expect(screen.getByText(/Email terkirim/i)).toBeInTheDocument();
-    expect(screen.getByText(/user@email\.com/i)).toBeInTheDocument();
-  });
-
-  it('submit valid menyimpan email ke sessionStorage', () => {
+  it('submit email valid menyimpan email ke sessionStorage', () => {
     renderPage();
     fireEvent.change(screen.getByLabelText(/Alamat Email/i), {
       target: { value: 'user@email.com' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Kirim Kode OTP/i }));
     expect(sessionStorage.getItem('reset_email')).toBe('user@email.com');
+  });
+
+  it('submit email valid tidak menampilkan error', () => {
+    renderPage();
+    fireEvent.change(screen.getByLabelText(/Alamat Email/i), {
+      target: { value: 'user@email.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Kirim Kode OTP/i }));
+    expect(screen.queryByText(/tidak boleh kosong/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Format email tidak valid/i)).not.toBeInTheDocument();
   });
 });

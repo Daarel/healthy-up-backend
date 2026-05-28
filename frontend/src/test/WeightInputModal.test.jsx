@@ -163,17 +163,17 @@ describe('WeightInputModal Component', () => {
     expect(props.onSuccess).toHaveBeenCalledWith(67, 'Setelah olahraga');
   });
 
-  it('menampilkan pesan sekali per hari saat allowMultiplePerDay false', () => {
+  it('menampilkan pesan sekali per minggu saat allowMultiplePerDay false', () => {
     renderModal({ allowMultiplePerDay: false });
     expect(
-      screen.getByText(/Berat badan hanya bisa dicatat sekali per hari/i)
+      screen.getByText(/Berat badan hanya bisa dicatat sekali per minggu/i)
     ).toBeInTheDocument();
   });
 
-  it('tidak menampilkan pesan sekali per hari saat allowMultiplePerDay true', () => {
+  it('tidak menampilkan pesan sekali per minggu saat allowMultiplePerDay true', () => {
     renderModal({ allowMultiplePerDay: true });
     expect(
-      screen.queryByText(/Berat badan hanya bisa dicatat sekali per hari/i)
+      screen.queryByText(/Berat badan hanya bisa dicatat sekali per minggu/i)
     ).not.toBeInTheDocument();
   });
 
@@ -187,7 +187,6 @@ describe('WeightInputModal Component', () => {
     const input = screen.getByTestId('input-berat');
     fireEvent.change(input, { target: { value: '67.0' } });
     fireEvent.click(screen.getByTestId('btn-simpan-berat'));
-    // onSuccess dipanggil, input direset
     expect(input.value).toBe('');
   });
 });

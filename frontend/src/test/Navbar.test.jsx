@@ -4,6 +4,18 @@ import { MemoryRouter } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import * as AuthContextModule from '../context/AuthContext';
 
+// Mock Logo component since it's an SVG/image component
+vi.mock('../components/ui/logo', () => ({ default: () => <span>HealthyUp</span> }));
+// Mock api to avoid real network calls
+vi.mock('../lib/api', () => ({
+  authApi: {
+    logout: vi.fn().mockResolvedValue({}),
+  },
+  userApi: {
+    getMe: vi.fn().mockRejectedValue(new Error('no session')),
+  },
+}));
+
 const renderNavbar = (initialPath = '/dashboard') => {
   vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
     user: { id: 1, username: 'ghifari' },
@@ -68,8 +80,12 @@ describe('Navbar Component', () => {
 
   it('menerapkan kelas aktif pada rute /dashboard', () => {
     renderNavbar('/dashboard');
-    // nav desktop dan mobile keduanya ada
     const nav = document.querySelector('nav');
     expect(nav).toBeInTheDocument();
+  });
+
+  it('tombol Keluar dapat diklik', () => {
+    renderNavbar();
+    fireEvent.click(screen.getByText('Keluar'));
   });
 });
