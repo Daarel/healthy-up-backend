@@ -95,7 +95,6 @@ class UserController {
   static async updatePicture(req, res) {
     try {
       const userId = req.user.id;
-      // Validasi input body (misalnya: { "imageUrl": "https://supabase.com/..." })
       const { imageUrl } = updateProfilePictureSchema.parse(req.body);
 
       const updatedUser = await UserService.updateProfilePicture(
@@ -156,7 +155,7 @@ class UserController {
     }
   }
 
-  // --- Helper Methods ---
+  // helper methods
   static handleZodError(err, res) {
     return res.status(400).json({
       status: 'fail',

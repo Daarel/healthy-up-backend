@@ -6,7 +6,6 @@ import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yamljs';
 
-// routes
 import authRoutes from './routes/authRoutes.js';
 import healthProfileRoutes from './routes/healthProfileRoutes.js';
 import userProfileRoutes from './routes/userRoutes.js';

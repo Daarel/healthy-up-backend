@@ -136,7 +136,7 @@ class HealthProfileController {
     }
   }
 
-  // --- Helper Methods ---
+  // helper methods
   static handleZodError(err, res) {
     return res.status(400).json({
       status: 'fail',

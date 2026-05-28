@@ -100,7 +100,7 @@ class UserService {
       data: {
         level: newLevel,
         rankTitle: newTitle,
-        experiencePoints: remainingExp, // Simpan sisa EXP
+        experiencePoints: remainingExp,
       },
       select: {
         id: true,

@@ -197,7 +197,7 @@ class AuthController {
     }
   }
 
-  // helper method
+  // helper methods
   static handleZodError(err, res) {
     return res.status(400).json({
       status: 'fail',
