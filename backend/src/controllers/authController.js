@@ -7,7 +7,7 @@ import {
   resendOtpSchema,
   resetPasswordSchema,
 } from '../schemas/authSchema.js';
-import AuthService from '../services/authService.js';
+import AuthService from '../services/authService.js'
 import { generateToken } from '../utils/generateToken.js';
 
 class AuthController {
