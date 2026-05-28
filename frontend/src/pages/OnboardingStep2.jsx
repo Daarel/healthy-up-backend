@@ -23,11 +23,11 @@ export default function OnboardingStep2() {
         {/* Progress Bar */}
         <div className="w-full max-w-md mx-auto mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-[#6d7b6c] font-jakarta">Langkah 2</span>
+            <span className="text-xs font-medium text-[#6d7b6c] font-jakarta">Langkah 2 dari 3</span>
         
           </div>
           <div className="h-2 bg-[#e5eeff] rounded-full overflow-hidden">
-            <div className="h-full w-[40%] bg-[#006e2f] rounded-full transition-all duration-500"></div>
+            <div className="h-full w-[66%] bg-[#006e2f] rounded-full transition-all duration-500"></div>
           </div>
         </div>
 

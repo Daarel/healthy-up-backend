@@ -3,8 +3,6 @@ import PrivateRoute from "./components/PrivateRoute";
 import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
 import OnboardingStep3 from "./pages/OnboardingStep3";
-import OnboardingStep4 from "./pages/OnboardingStep4";
-import OnboardingStep5 from "./pages/OnboardingStep5";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPasswordOtp from "./pages/ResetPasswordOtp";
@@ -23,8 +21,9 @@ function App() {
         <Route path="/onboarding/1" element={<OnboardingStep1 />} />
         <Route path="/onboarding/2" element={<OnboardingStep2 />} />
         <Route path="/onboarding/3" element={<OnboardingStep3 />} />
-        <Route path="/onboarding/4" element={<OnboardingStep4 />} />
-        <Route path="/onboarding/5" element={<OnboardingStep5 />} />
+        {/* Redirect lama step 4 & 5 ke step 3 agar tidak 404 */}
+        <Route path="/onboarding/4" element={<Navigate to="/onboarding/3" replace />} />
+        <Route path="/onboarding/5" element={<Navigate to="/onboarding/3" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/lupa-password" element={<ForgotPassword />} />
         <Route path="/reset-password/otp" element={<ResetPasswordOtp />} />

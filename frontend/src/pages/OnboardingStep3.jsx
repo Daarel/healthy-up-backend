@@ -1,8 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Scale, Ruler } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { authApi } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+
+const REGISTER_KEY = "healthyup:register";
 
 export default function OnboardingStep3() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerError, setRegisterError] = useState("");
   const bmi = 24.2;
   const bmiCategory = "Normal";
 
@@ -22,8 +30,7 @@ export default function OnboardingStep3() {
         {/* Progress Bar */}
         <div className="w-full max-w-md mx-auto mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-[#6d7b6c] font-jakarta">Langkah 3</span>
-
+            <span className="text-xs font-medium text-[#6d7b6c] font-jakarta">Langkah 3 dari 3</span>
           </div>
           <div className="h-2 bg-[#e5eeff] rounded-full overflow-hidden">
             <div className="h-full w-[60%] bg-[#006e2f] rounded-full transition-all duration-500"></div>
@@ -73,12 +80,47 @@ export default function OnboardingStep3() {
 
          
 
+          {registerError && (
+            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 font-jakarta mb-4">
+              {registerError}
+            </div>
+          )}
+
           <button
-            onClick={() => navigate("/onboarding/4")}
-            className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2"
+            onClick={async () => {
+              setRegisterError("");
+              setIsRegistering(true);
+              try {
+                const raw = sessionStorage.getItem(REGISTER_KEY);
+                if (!raw) {
+                  navigate("/onboarding/1");
+                  return;
+                }
+                const { username, email, password } = JSON.parse(raw);
+                const res = await authApi.register(username, email, password);
+                setUser(res.data.user);
+                sessionStorage.removeItem(REGISTER_KEY);
+                navigate("/dashboard");
+              } catch (err) {
+                setRegisterError(err.message || "Gagal membuat akun. Coba lagi.");
+              } finally {
+                setIsRegistering(false);
+              }
+            }}
+            disabled={isRegistering}
+            className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Lanjutkan
-            <ArrowRight className="w-5 h-5" />
+            {isRegistering ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Membuat akun...
+              </>
+            ) : (
+              <>
+                Mulai Perjalanan
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
           </button>
         </div>
 

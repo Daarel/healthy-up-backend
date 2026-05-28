@@ -9,14 +9,18 @@ import {
   MoreVertical,
   Check,
   Star,
+  Sparkle,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import WeightCard from "../components/WeightCard";
 import WeightReminderBanner from "../components/WeightReminderBanner";
 import WeightInputModal from "../components/WeightInputModal";
+import TargetWeightModal from "../components/TargetWeightModal";
+import SetupTargetModal from "../components/SetupTargetModal";
 import Streak from "../components/ui/streak";
 
 const WEIGHT_STORAGE_KEY = "healthyup:weightLog";
+const SETUP_DONE_KEY = "healthyup:setupDone";
 
 const getTodayKey = () => {
   const now = new Date();
@@ -40,13 +44,24 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   // Weight state
-  const targetWeight = 65;
   const stored = readWeightLog();
+  const [targetWeight, setTargetWeight] = useState(stored?.targetWeight ?? 65);
   const [currentWeight, setCurrentWeight] = useState(stored?.currentWeight ?? 68.5);
   const [previousWeight, setPreviousWeight] = useState(stored?.previousWeight ?? 70.0);
   const [lastLoggedDate, setLastLoggedDate] = useState(stored?.lastLoggedDate ?? null);
   const [showWeightModal, setShowWeightModal] = useState(false);
+  const [showTargetModal, setShowTargetModal] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
   const [reminderDismissed, setReminderDismissed] = useState(false);
+
+  // Cek apakah user sudah pernah setup target & generate tugas
+  const [setupDone, setSetupDone] = useState(() => {
+    try {
+      return localStorage.getItem(SETUP_DONE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
 
   const todayKey = getTodayKey();
   const isLoggedToday = lastLoggedDate === todayKey;
@@ -75,12 +90,62 @@ export default function Dashboard() {
           currentWeight: newWeight,
           previousWeight: newPrev,
           lastLoggedDate: todayKey,
+          targetWeight,
         })
       );
     } catch {
       // ignore storage errors
     }
     setShowWeightModal(false);
+  };
+
+  const handleTargetSave = (newTarget) => {
+    setTargetWeight(newTarget);
+    try {
+      window.localStorage.setItem(
+        WEIGHT_STORAGE_KEY,
+        JSON.stringify({
+          currentWeight,
+          previousWeight,
+          lastLoggedDate,
+          targetWeight: newTarget,
+        })
+      );
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  // Handler dari SetupTargetModal — simpan target + aktifkan tugas
+  const handleSetupConfirm = ({ targetWeight: newTarget, tasks }) => {
+    setTargetWeight(newTarget);
+    // Ganti tugas dengan yang di-generate
+    setTasks(
+      tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        category: t.category,
+        completed: false,
+        claimed: false,
+        points: t.points,
+        Icon: t.Icon,
+      }))
+    );
+    try {
+      window.localStorage.setItem(
+        WEIGHT_STORAGE_KEY,
+        JSON.stringify({
+          currentWeight,
+          previousWeight,
+          lastLoggedDate,
+          targetWeight: newTarget,
+        })
+      );
+      window.localStorage.setItem(SETUP_DONE_KEY, "true");
+    } catch {
+      // ignore storage errors
+    }
+    setSetupDone(true);
   };
 
   const [tasks, setTasks] = useState([
@@ -133,6 +198,31 @@ export default function Dashboard() {
             onDismiss={() => setReminderDismissed(true)}
           />
 
+          {/* Setup Target Banner — muncul jika user belum setup */}
+          {!setupDone && (
+            <div className="mb-6 bg-[#006e2f]  rounded-3xl p-5 flex items-center justify-between gap-4 shadow-[0_8px_30px_rgba(0,110,47,0.2)]">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Sparkle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-white font-lexend">
+                    Belum ada target & tugas
+                  </p>
+                  <p className="text-sm text-white/80 font-jakarta mt-0.5">
+                    Set target berat badanmu dan biarkan AI menyusun tugas harianmu
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSetupModal(true)}
+                className="flex-shrink-0 bg-white text-[#006e2f] font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-green-50 transition-colors font-jakarta whitespace-nowrap"
+              >
+                Mulai Setup
+              </button>
+            </div>
+          )}
+
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Progress Circle Card */}
@@ -166,6 +256,7 @@ export default function Dashboard() {
               targetWeight={targetWeight}
               isLoggedToday={isLoggedToday}
               onAddClick={openWeightModal}
+              onTargetClick={() => setShowTargetModal(true)}
             />
 
             {/* Calories Card */}
@@ -293,6 +384,24 @@ export default function Dashboard() {
         onSuccess={handleWeightSuccess}
         currentWeight={currentWeight}
         targetWeight={targetWeight}
+      />
+
+      {/* Target Weight Modal */}
+      <TargetWeightModal
+        isOpen={showTargetModal}
+        onClose={() => setShowTargetModal(false)}
+        currentWeight={currentWeight}
+        initialTarget={targetWeight}
+        onSave={handleTargetSave}
+      />
+
+      {/* Setup Target & Generate Tugas Modal */}
+      <SetupTargetModal
+        isOpen={showSetupModal}
+        onClose={() => setShowSetupModal(false)}
+        currentWeight={currentWeight}
+        initialTarget={targetWeight}
+        onConfirm={handleSetupConfirm}
       />
     </div>
   );

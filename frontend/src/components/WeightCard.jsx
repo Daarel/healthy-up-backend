@@ -1,4 +1,4 @@
-import { Scale, TrendingDown, TrendingUp, Plus, Lock } from "lucide-react";
+import { Scale, TrendingDown, TrendingUp, Plus, Lock, Target } from "lucide-react";
 
 /**
  * Kartu ringkasan berat badan untuk Dashboard.
@@ -10,6 +10,7 @@ import { Scale, TrendingDown, TrendingUp, Plus, Lock } from "lucide-react";
  *  - targetWeight   {number}
  *  - isLoggedToday  {boolean}  kunci tombol input jika sudah dicatat hari ini
  *  - onAddClick     {fn}       buka modal input
+ *  - onTargetClick  {fn}       buka modal ubah target (opsional)
  */
 export default function WeightCard({
   currentWeight,
@@ -18,12 +19,24 @@ export default function WeightCard({
   targetWeight,
   isLoggedToday,
   onAddClick,
+  onTargetClick,
 }) {
   return (
     <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(34,197,94,0.08)] border border-[#e5eeff]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-[#191c20] font-lexend">Berat Badan</h3>
         <div className="flex items-center gap-2">
+          {onTargetClick && (
+            <button
+              type="button"
+              onClick={onTargetClick}
+              aria-label="Ubah target berat badan"
+              title="Ubah target berat badan"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6d7b6c] hover:bg-[#e5eeff] hover:text-[#006e2f] transition-colors"
+            >
+              <Target className="w-4 h-4" />
+            </button>
+          )}
           <button
             type="button"
             onClick={onAddClick}

@@ -3,7 +3,6 @@ import {
   CheckCircle2, 
   Clock, 
   Star, 
-  CalendarDays, 
   Trophy, 
   Upload,
   Eye,
@@ -12,10 +11,10 @@ import {
   HelpCircle,
   X,
   CloudUpload,
-  Video,
-  Lightbulb,
+  Sparkle,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import AiTaskGenerator from "../components/AiTaskGenerator";
 
 const INITIAL_TASKS = {
   "hari-ini": [
@@ -42,6 +41,7 @@ export default function Tugas() {
   const [tasks, setTasks] = useState(INITIAL_TASKS);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [guideModalOpen, setGuideModalOpen] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [uploadedProofs, setUploadedProofs] = useState({});
   const [previewMedia, setPreviewMedia] = useState([]);
@@ -139,6 +139,17 @@ export default function Tugas() {
   };
 
   const hasProof = (taskId) => Boolean(uploadedProofs[taskId]);
+
+  // Terapkan tugas hasil generate AI — ganti hari-ini & minggu-ini
+  const handleAiConfirm = (dailyTasks, weeklyTasks) => {
+    setTasks(prev => ({
+      ...prev,
+      "hari-ini": dailyTasks,
+      "minggu-ini": weeklyTasks,
+    }));
+    setUploadedProofs({});
+    setActiveTab("hari-ini");
+  };
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
