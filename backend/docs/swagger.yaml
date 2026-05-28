@@ -281,3 +281,45 @@ paths:
           description: Validasi query parameter gagal
         '500':
           description: Terjadi kesalahan pada server
+  
+  /users/user/picture:
+    patch:
+      summary: Memperbarui URL foto profil pengguna
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [imageUrl]
+              properties:
+                imageUrl:
+                  type: string
+                  format: uri
+                  example: "https://url-gambar-supabase.com/foto.jpg"
+      responses:
+        '200':
+          description: Foto profil berhasil diperbarui
+        '400':
+          description: Validasi input (URL) gagal
+        '500':
+          description: Terjadi kesalahan pada server
+
+  /users/user/level-up:
+    post:
+      summary: Memproses kenaikan level pengguna jika batas EXP telah tercapai
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Berhasil naik level, EXP dikurangi, dan Title diperbarui jika memenuhi syarat
+        '400':
+          description: EXP pengguna belum mencukupi untuk naik level
+        '404':
+          description: Pengguna tidak ditemukan
+        '500':
+          description: Terjadi kesalahan pada server saat memproses kenaikan level
