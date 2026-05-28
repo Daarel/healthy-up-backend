@@ -5,4 +5,8 @@ const getAllUsersSchema = z.object({
   limit: z.coerce.number().int().positive().default(20),
 });
 
-export { getAllUsersSchema };
+const updateProfilePictureSchema = z.object({
+  profilePicture: z.string().url('Format URL gambar tidak valid'), // deprecated need change
+});
+
+export { getAllUsersSchema, updateProfilePictureSchema };

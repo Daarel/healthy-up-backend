@@ -10,7 +10,8 @@ router.get('/all-users', protect, adminOnly, UserController.getAllUsers);
 
 router.use('/user', protect);
 
-router.route('/user')
+router
+  .route('/user')
   .get(UserController.getUserProfile)
   .delete(UserController.deleteProfile);
 

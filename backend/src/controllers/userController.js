@@ -140,12 +140,10 @@ class UserController {
           .json({ status: 'error', message: 'Pengguna tidak ditemukan' });
       }
       if (err.message === 'INSUFFICIENT_EXP') {
-        return res
-          .status(400)
-          .json({
-            status: 'error',
-            message: 'EXP Anda belum cukup untuk naik level',
-          });
+        return res.status(400).json({
+          status: 'error',
+          message: 'EXP Anda belum cukup untuk naik level',
+        });
       }
       return UserController.handleServerError(
         err,

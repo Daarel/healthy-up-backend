@@ -281,7 +281,7 @@ paths:
           description: Validasi query parameter gagal
         '500':
           description: Terjadi kesalahan pada server
-  
+
   /users/user/picture:
     patch:
       summary: Memperbarui URL foto profil pengguna
@@ -299,7 +299,7 @@ paths:
                 imageUrl:
                   type: string
                   format: uri
-                  example: "https://url-gambar-supabase.com/foto.jpg"
+                  example: 'https://url-gambar-supabase.com/foto.jpg'
       responses:
         '200':
           description: Foto profil berhasil diperbarui

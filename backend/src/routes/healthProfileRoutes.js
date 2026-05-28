@@ -1,19 +1,21 @@
 import express from 'express';
 
-import {
-  createProfile,
-  createWeightLog,
-  getCaloriesSummary,
-  getWeightLog,
-} from '../controllers/healthProfileController.js';
+import HealthProfileController from '../controllers/healthProfileController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, createProfile);
-router.get('/calories-summary', protect, getCaloriesSummary);
+router.post('/', protect, HealthProfileController.createProfile);
+router.get(
+  '/calories-summary',
+  protect,
+  HealthProfileController.getCaloriesSummary,
+);
 
 router.use('/weight-logs', protect);
-router.route('/weight-logs').get(getWeightLog).post(createWeightLog);
+router
+  .route('/weight-logs')
+  .get(HealthProfileController.getWeightLog)
+  .post(HealthProfileController.createWeightLog);
 
 export default router;
