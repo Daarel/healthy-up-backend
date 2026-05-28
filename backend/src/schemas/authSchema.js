@@ -72,9 +72,12 @@ const resetPasswordSchema = z
     path: ['confirmedPassword'],
   });
 
+const resendOtpSchema = forgotPasswordSchema;
+
 export {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
+  resendOtpSchema,
   resetPasswordSchema,
 };

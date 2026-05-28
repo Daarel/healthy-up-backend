@@ -4,6 +4,7 @@ import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
+  resendOtpSchema,
   resetPasswordSchema,
 } from '../schemas/authSchema.js';
 import AuthService from '../services/AuthService.js';
@@ -163,6 +164,35 @@ class AuthController {
           message: 'OTP has expired. Please request a new one.',
         });
 
+      return AuthController.handleServerError(err, res);
+    }
+  }
+
+  /**
+   * * @desc    Resend OTP
+   * ! @route   POST /api/v1/auth/resend-otp
+   * ? @access  Public
+   */
+  static async resendOtp(req, res) {
+    try {
+      const { email } = resendOtpSchema.parse(req.body);
+
+      await AuthService.processForgotPassword(email);
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Kode OTP baru telah berhasil dikirimkan ke email Anda',
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError)
+        return AuthController.handleZodError(err, res);
+
+      if (err.message === 'EMAIL_FAILED') {
+        return res.status(500).json({
+          status: 'error',
+          message: 'Gagal mengirim ulang email OTP, silakan coba lagi nanti.',
+        });
+      }
       return AuthController.handleServerError(err, res);
     }
   }

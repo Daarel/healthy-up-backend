@@ -121,6 +121,30 @@ paths:
         '400':
           description: OTP salah atau kadaluwarsa
 
+  /auth/resend-otp:
+    post:
+      summary: Meminta pengiriman ulang kode OTP
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: daarel@example.com
+      responses:
+        '200':
+          description: Kode OTP baru berhasil dikirim ke email
+        '400':
+          description: Validasi email gagal
+        '500':
+          description: Gagal mengirimkan email karena masalah server
+
   /health-profiles/:
     post:
       summary: Membuat profil kesehatan pengguna (Satu pengguna, satu profil)
