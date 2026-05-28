@@ -4,7 +4,7 @@ import {
   getAllUsersSchema,
   updateProfilePictureSchema, // Pastikan ini sudah dibuat di schemas/userSchema.js
 } from '../schemas/userSchema.js';
-import UserService from '../services/UserService.js';
+import UserService from '../services/userService.js';
 
 class UserController {
   /**
