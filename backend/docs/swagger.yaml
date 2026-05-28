@@ -1,0 +1,259 @@
+openapi: 3.0.0
+info:
+  title: HealthyUp API Documentation
+  description: Dokumentasi RESTful API untuk aplikasi HealthyUp (Capstone Project)
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: https://healthy-up-production.up.railway.app
+
+tags:
+  - name: Auth
+    description: Endpoint untuk autentikasi pengguna
+  - name: Health Profiles
+    description: Endpoint untuk manajemen profil kesehatan dan log berat badan
+  - name: Users
+    description: Endpoint untuk manajemen data dan akun penggunas
+
+paths:
+  /auth/register:
+    post:
+      summary: Mendaftarkan akun baru
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Daarel Safa
+                email:
+                  type: string
+                  example: daarel@example.com
+                password:
+                  type: string
+                  example: PasswordKuat123!
+      responses:
+        '201':
+          description: Berhasil mendaftar
+        '400':
+          description: Validasi gagal atau email sudah terdaftar
+
+  /auth/login:
+    post:
+      summary: Login pengguna
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: daarel@example.com
+                password:
+                  type: string
+                  example: PasswordKuat123!
+      responses:
+        '200':
+          description: Berhasil login (mengembalikan token)
+        '401':
+          description: Kredensial tidak valid
+
+  /auth/logout:
+    post:
+      summary: Logout pengguna (menghapus cookie)
+      tags: [Auth]
+      responses:
+        '200':
+          description: Berhasil logout
+
+  /auth/forgot-password:
+    post:
+      summary: Meminta kode OTP untuk reset password
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  example: daarel@example.com
+      responses:
+        '200':
+          description: OTP berhasil dikirim ke email
+
+  /auth/reset-password:
+    post:
+      summary: Mereset password menggunakan kode OTP
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp, newPassword]
+              properties:
+                email:
+                  type: string
+                  example: daarel@example.com
+                otp:
+                  type: string
+                  example: '123456'
+                newPassword:
+                  type: string
+                  example: PasswordBaru321!
+      responses:
+        '200':
+          description: Password berhasil diubah
+        '400':
+          description: OTP salah atau kadaluwarsa
+
+  /health-profiles/:
+    post:
+      summary: Membuat profil kesehatan pengguna (Satu pengguna, satu profil)
+      tags: [Health Profiles]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [gender, age, heightCm, weightKg, goalWeight]
+              properties:
+                gender:
+                  type: string
+                  example: 'male'
+                age:
+                  type: integer
+                  example: 21
+                heightCm:
+                  type: number
+                  example: 175.5
+                weightKg:
+                  type: number
+                  example: 70.2
+                goalWeight:
+                  type: number
+                  example: 65.0
+      responses:
+        '201':
+          description: Profil kesehatan berhasil disimpan
+        '400':
+          description: Validasi gagal atau profil sudah ada
+
+  /health-profiles/calories-summary:
+    get:
+      summary: Mendapatkan ringkasan kalori terbakar hari ini dan minggu ini
+      tags: [Health Profiles]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Berhasil mengambil data ringkasan kalori
+        '500':
+          description: Gagal mengambil data dashboard
+
+  /health-profiles/weight-logs:
+    get:
+      summary: Mendapatkan riwayat log berat badan pengguna
+      tags: [Health Profiles]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Berhasil mengambil riwayat berat badan
+        '500':
+          description: Gagal mengambil data dari server
+
+    post:
+      summary: Mencatat log berat badan baru dan memperbarui profil kesehatan
+      tags: [Health Profiles]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weight]
+              properties:
+                weight:
+                  type: number
+                  example: 68.5
+      responses:
+        '201':
+          description: Berat badan berhasil dicatat dan profil diperbarui
+        '400':
+          description: Validasi input gagal
+        '404':
+          description: Profil kesehatan belum dibuat
+
+  /users/profile:
+    get:
+      summary: Mendapatkan data profil pengguna yang sedang login
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Berhasil mengambil profil pengguna
+        '401':
+          description: Tidak ada token atau token tidak valid
+        '404':
+          description: Pengguna tidak ditemukan
+        '500':
+          description: Terjadi kesalahan pada server
+
+    delete:
+      summary: Menghapus akun pengguna dan seluruh data terkait secara permanen
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Akun berhasil dihapus dan sesi diakhiri
+        '500':
+          description: Terjadi kesalahan pada server saat menghapus akun
+
+  /users/all-users:
+    get:
+      summary: Mendapatkan daftar seluruh pengguna dengan sistem pagination
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Nomor halaman
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Jumlah data yang ditampilkan per halaman
+      responses:
+        '200':
+          description: Berhasil mengambil daftar pengguna beserta metadata pagination
+        '400':
+          description: Validasi query parameter gagal
+        '500':
+          description: Terjadi kesalahan pada server
