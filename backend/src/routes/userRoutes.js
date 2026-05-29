@@ -15,7 +15,7 @@ router
   .get(UserController.getUserProfile)
   .delete(UserController.deleteProfile);
 
-router.patch('/user/picture', UserController.updatePicture);
-router.post('/user/level-up', UserController.levelUp);
+router.patch('/user/picture', protect, UserController.updatePicture);
+router.post('/user/level-up', protect, UserController.levelUp);
 
 export default router;
