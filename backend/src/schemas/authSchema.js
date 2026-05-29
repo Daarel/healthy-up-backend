@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const registerSchema = z.strictObject({
-  name: z
+  username: z
     .string({ required_error: 'Nama pengguna wajib diisi' })
     .trim()
     .min(2, 'Nama pengguna minimal 2 karakter')

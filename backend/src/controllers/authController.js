@@ -18,9 +18,9 @@ class AuthController {
    */
   static async register(req, res) {
     try {
-      const { name, email, password } = registerSchema.parse(req.body);
+      const { username, email, password } = registerSchema.parse(req.body);
 
-      const user = await AuthService.registerUser(name, email, password);
+      const user = await AuthService.registerUser(username, email, password);
       const token = generateToken(user.id, res);
 
       res.status(201).json({
@@ -28,7 +28,7 @@ class AuthController {
         data: {
           user: {
             id: user.id,
-            name: name,
+            username: username,
             email: email,
           },
           token,
@@ -63,7 +63,7 @@ class AuthController {
         data: {
           user: {
             id: user.id,
-            name: user.name,
+            username: user.username,
             email: user.email,
           },
           token,

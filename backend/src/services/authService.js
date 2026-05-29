@@ -5,7 +5,7 @@ import prisma from '../lib/prisma.js';
 import { sendEmail } from '../utils/sendEmail.js';
 
 class AuthService {
-  static async registerUser(name, email, password) {
+  static async registerUser(username, email, password) {
     const userExists = await prisma.user.findUnique({ where: { email } });
 
     if (userExists) throw new Error('EMAIL_ALREADY_REGISTERED');
@@ -14,7 +14,7 @@ class AuthService {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await prisma.user.create({
-      data: { username: name, email, password: hashedPassword },
+      data: { username, email, password: hashedPassword },
     });
 
     return user;
