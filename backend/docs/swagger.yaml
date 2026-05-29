@@ -26,9 +26,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, email, password]
+              required: [username, email, password]
               properties:
-                name:
+                username:
                   type: string
                   example: Daarel Safa
                 email:
@@ -263,13 +263,13 @@ paths:
         - bearerAuth: []
       parameters:
         - in: query
-          name: page
+          username: page
           schema:
             type: integer
             default: 1
           description: Nomor halaman
         - in: query
-          name: limit
+          username: limit
           schema:
             type: integer
             default: 10
