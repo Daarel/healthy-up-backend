@@ -68,7 +68,7 @@ class UserController {
   /**
    * * @desc    Get All User Information
    * ! @route   GET /api/v1/users/all-users
-   * ? @access  Public / Admin
+   * ? @access  Admin
    */
   static async getAllUsers(req, res) {
     try {

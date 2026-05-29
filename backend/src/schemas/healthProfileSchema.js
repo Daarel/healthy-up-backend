@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const createHealthProfileSchema = z.strictObject({
-  gender: z.enum(['MALE', 'FEMALE'], {
+  gender: z.enum(['male', 'female'], {
     required_error: 'Jenis kelamin wajib dipilih',
     invalid_type_error: 'Format jenis kelamin tidak valid',
   }),

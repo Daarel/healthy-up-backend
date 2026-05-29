@@ -22,6 +22,7 @@ const protect = async (req, res, next) => {
           username: true,
           email: true,
           level: true,
+          role: true,
         },
       });
 

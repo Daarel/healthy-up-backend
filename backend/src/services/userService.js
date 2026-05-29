@@ -89,11 +89,11 @@ class UserService {
     const remainingExp = currentUser.experiencePoints - expRequired;
     let newTitle = currentUser.rankTitle;
 
-    if (newLevel >= 25) newTitle = 'LEGENDA';
-    else if (newLevel >= 20) newTitle = 'MASTER_VITALITAS';
-    else if (newLevel >= 15) newTitle = 'KESATRIA_BUGAR';
-    else if (newLevel >= 10) newTitle = 'PEJUANG_SEHAT';
-    else if (newLevel >= 5) newTitle = 'PENGGERAK';
+    if (newLevel >= 25) newTitle = 'legenda';
+    else if (newLevel >= 20) newTitle = 'master_vitalitas';
+    else if (newLevel >= 15) newTitle = 'kesatria_bugar';
+    else if (newLevel >= 10) newTitle = 'pejuang_sehat';
+    else if (newLevel >= 5) newTitle = 'penggerak';
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
