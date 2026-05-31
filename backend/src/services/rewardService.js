@@ -93,11 +93,37 @@ class RewardService {
       },
     });
 
-    return { 
-      coupon: updatedCoupon, 
+    return {
+      coupon: updatedCoupon,
       rewardName: userReward.reward.name,
-      username: userReward.user.username
+      username: userReward.user.username,
     };
+  }
+
+  static async getUserRewards(userId, status) {
+    const whereClause = { userId };
+
+    // Terapkan filter berdasarkan query status
+    if (status === 'active') {
+      whereClause.isUsed = false;
+    } else if (status === 'used') {
+      whereClause.isUsed = true;
+    }
+
+    const myRewards = await prisma.userReward.findMany({
+      where: whereClause,
+      include: {
+        reward: {
+          select: {
+            name: true,
+            pointsCost: true,
+          },
+        },
+      },
+      orderBy: { redeemedAt: 'desc' },
+    });
+
+    return myRewards;
   }
 }
 

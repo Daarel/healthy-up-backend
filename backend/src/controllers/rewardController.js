@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   claimRewardSchema,
   createRewardSchema,
+  getMyRewardsQuerySchema,
   useCouponSchema,
 } from '../schemas/rewardSchema.js';
 import RewardService from '../services/rewardService.js';
@@ -156,6 +157,37 @@ class RewardController {
         err,
         res,
         'Gagal memverifikasi kupon',
+      );
+    }
+  }
+
+  /**
+   * * @desc    Get User's Claimed Rewards (My Coupons)
+   * ! @route   GET /api/v1/rewards/my-rewards
+   * ? @access  Private
+   */
+  static async getMyRewards(req, res) {
+    try {
+      const { status } = getMyRewardsQuerySchema.parse(req.query);
+      const userId = req.user.id;
+
+      const myRewards = await RewardService.getUserRewards(userId, status);
+
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          total: myRewards.length,
+          myRewards,
+        },
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return RewardController.handleZodError(err, res);
+      }
+      return RewardController.handleServerError(
+        err,
+        res,
+        'Gagal mengambil daftar kupon Anda',
       );
     }
   }

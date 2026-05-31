@@ -37,4 +37,10 @@ export const useCouponSchema = z.strictObject({
     .min(5, 'Format kode tidak valid'),
 });
 
-export { claimRewardSchema, createRewardSchema };
+const getMyRewardsQuerySchema = z.object({
+  status: z.enum(['active', 'used', 'all'], {
+    invalid_type_error: "Status hanya boleh 'active', 'used', atau 'all'",
+  }).default('all'),
+});
+
+export { claimRewardSchema, createRewardSchema, getMyRewardsQuerySchema };
