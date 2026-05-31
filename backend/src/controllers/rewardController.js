@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { claimRewardSchema, createRewardSchema } from '../schemas/rewardSchema.js';
+import {
+  claimRewardSchema,
+  createRewardSchema,
+  useCouponSchema,
+} from '../schemas/rewardSchema.js';
 import RewardService from '../services/rewardService.js';
 
 class RewardController {
@@ -87,26 +91,71 @@ class RewardController {
           .json({ status: 'error', message: 'Kupon tidak ditemukan' });
       }
       if (err.message === 'REWARD_OUT_OF_STOCK') {
-        return res
-          .status(400)
-          .json({
-            status: 'error',
-            message: 'Maaf, kupon ini sudah habis atau tidak aktif',
-          });
+        return res.status(400).json({
+          status: 'error',
+          message: 'Maaf, kupon ini sudah habis atau tidak aktif',
+        });
       }
       if (err.message === 'INSUFFICIENT_POINTS') {
-        return res
-          .status(400)
-          .json({
-            status: 'error',
-            message: 'Poin Anda tidak cukup untuk menukarkan kupon ini',
-          });
+        return res.status(400).json({
+          status: 'error',
+          message: 'Poin Anda tidak cukup untuk menukarkan kupon ini',
+        });
       }
 
       return RewardController.handleServerError(
         err,
         res,
         'Gagal memproses klaim kupon',
+      );
+    }
+  }
+
+  // Tambahkan di dalam kelas RewardController
+
+  /**
+   * * @desc    Use/Verify Coupon at Physical Store
+   * ! @route   POST /api/v1/rewards/verify
+   * ? @access  Private (Bisa untuk Admin Toko atau User langsung)
+   */
+  static async verifyAndUseCoupon(req, res) {
+    try {
+      const { redemptionCode } = useCouponSchema.parse(req.body);
+
+      const { rewardName, username } =
+        await RewardService.useCouponAtStore(redemptionCode);
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Kupon berhasil diverifikasi dan dihanguskan!',
+        data: {
+          rewardName,
+          username,
+          redemptionCode,
+        },
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return RewardController.handleZodError(err, res);
+      }
+
+      if (err.message === 'INVALID_CODE') {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Kode kupon tidak valid atau tidak ditemukan',
+        });
+      }
+      if (err.message === 'COUPON_ALREADY_USED') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Kupon ini sudah pernah digunakan sebelumnya!',
+        });
+      }
+
+      return RewardController.handleServerError(
+        err,
+        res,
+        'Gagal memverifikasi kupon',
       );
     }
   }

@@ -71,6 +71,34 @@ class RewardService {
       return { userReward, remainingPoints };
     });
   }
+
+  static async useCouponAtStore(redemptionCode) {
+    const userReward = await prisma.userReward.findUnique({
+      where: { redemptionCode },
+      include: {
+        reward: { select: { name: true } },
+        user: { select: { username: true } },
+      },
+    });
+
+    if (!userReward) throw new Error('INVALID_CODE');
+    if (userReward.isUsed) throw new Error('COUPON_ALREADY_USED');
+
+    // hanguskan kupon
+    const updatedCoupon = await prisma.userReward.update({
+      where: { redemptionCode },
+      data: {
+        isUsed: true,
+        usedAt: new Date(),
+      },
+    });
+
+    return { 
+      coupon: updatedCoupon, 
+      rewardName: userReward.reward.name,
+      username: userReward.user.username
+    };
+  }
 }
 
 export default RewardService;

@@ -11,5 +11,6 @@ router
   .post(protect, adminOnly, RewardController.createReward);
 
 router.post('/claim', protect, RewardController.claimReward);
+router.post('/verify', protect, RewardController.verifyAndUseCoupon);
 
 export default router;

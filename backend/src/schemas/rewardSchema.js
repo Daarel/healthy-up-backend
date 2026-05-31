@@ -30,4 +30,11 @@ const claimRewardSchema = z.strictObject({
     .uuid('Format ID Reward tidak valid'),
 });
 
+export const useCouponSchema = z.strictObject({
+  redemptionCode: z
+    .string({ required_error: 'Kode penukaran wajib diisi' })
+    .trim()
+    .min(5, 'Format kode tidak valid'),
+});
+
 export { claimRewardSchema, createRewardSchema };
