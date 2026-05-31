@@ -46,8 +46,15 @@ const createCalorieLogSchema = z.object({
   foodName: z.string().optional(),
 });
 
+const getWeightLogsQuerySchema = z.object({
+  range: z.enum(['week', 'month'], {
+    invalid_type_error: "Rentang hanya boleh 'week' atau 'month'",
+  }).default('week'),
+});
+
 export {
   createCalorieLogSchema,
   createHealthProfileSchema,
   createWeightLogsSchema,
+  getWeightLogsQuerySchema
 };

@@ -536,14 +536,22 @@ paths:
 
   /health-profiles/weight-logs:
     get:
-      summary: Mendapatkan riwayat pencatatan berat badan pengguna
-      description: Menampilkan daftar seluruh rekaman berat badan harian yang pernah diinput oleh pengguna, diurutkan dari yang paling baru.
+      summary: Mendapatkan grafik riwayat berat badan pengguna
+      description: Mengambil data historis berat badan pengguna untuk divisualisasikan. Mendukung rentang 1 minggu atau 1 bulan terakhir. Jika pada suatu hari pengguna tidak menginput data, sistem akan mengembalikan tanggal tersebut dengan nilai `weight` 0.
       tags: [Health Profiles]
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: range
+          schema:
+            type: string
+            enum: [week, month]
+            default: week
+          description: Rentang waktu penarikan data log. Pilih 'week' untuk 7 hari terakhir atau 'month' untuk 30 hari terakhir.
       responses:
         '200':
-          description: Berhasil mengambil data riwayat berat badan
+          description: Berhasil mengambil riwayat berat badan
           content:
             application/json:
               schema:
@@ -555,24 +563,29 @@ paths:
                   data:
                     type: object
                     properties:
+                      totalDays:
+                        type: integer
+                        example: 7
                       weightLogs:
                         type: array
+                        description: Daftar historis yang sudah diurutkan dari tanggal terlama hingga hari ini tanpa ada hari yang terlewat.
                         items:
                           type: object
                           properties:
-                            id:
+                            date:
                               type: string
-                              format: uuid
+                              format: date
+                              example: '2026-05-25'
                             weight:
                               type: number
                               format: float
-                            loggedAt:
-                              type: string
-                              format: date-time
+                              example: 64.5
+        '400':
+          description: Parameter query range tidak valid (Bukan 'week' atau 'month')
         '401':
           description: Sesi tidak valid atau tidak ada token
         '500':
-          description: Gagal fetch weight logs
+          description: Terjadi kesalahan pada server saat mengambil data log
 
     post:
       summary: Mencatat berat badan harian

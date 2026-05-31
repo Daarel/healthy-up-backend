@@ -4,6 +4,7 @@ import {
   createCalorieLogSchema,
   createHealthProfileSchema,
   createWeightLogsSchema,
+  getWeightLogsQuerySchema,
 } from '../schemas/healthProfileSchema.js';
 import HealthProfileService from '../services/healthProfileService.js';
 
@@ -103,20 +104,32 @@ class HealthProfileController {
   }
 
   /**
-   * * @desc    Get User Daily Weight Loss
-   * ! @route   GET /api/v1/health-profiles/weight-logs
+   * * @desc    Get User Weight Logs (Week/Month Range)
+   * ! @route   GET /api/v1/health-profiles/weight-logs?range=week
    * ? @access  Private
    */
   static async getWeightLog(req, res) {
     try {
       const userId = req.user.id;
-      const weightLogs = await HealthProfileService.getWeightLogs(userId);
+      const { range } = getWeightLogsQuerySchema.parse(req.query);
+
+      const weightLogs = await HealthProfileService.getWeightLogs(
+        userId,
+        range,
+      );
 
       return res.status(200).json({
         status: 'success',
-        data: { weightLogs },
+        data: {
+          totalDays: weightLogs.length,
+          weightLogs,
+        },
       });
     } catch (err) {
+      if (err instanceof z.ZodError) {
+        // Asumsi Anda punya metode handleZodError seperti di UserController
+        return HealthProfileController.handleZodError(err, res);
+      }
       return HealthProfileController.handleServerError(
         err,
         res,

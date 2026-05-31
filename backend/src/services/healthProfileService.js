@@ -103,18 +103,48 @@ class HealthProfileService {
     return newCalorieLog;
   }
 
-  static async getWeightLogs(userId) {
-    const weightLogs = await prisma.weightLog.findMany({
-      where: { userId },
-      orderBy: { loggedAt: 'desc' },
-      select: {
-        id: true,
-        weight: true,
-        loggedAt: true,
+  static async getWeightLogs(userId, range) {
+    const endDate = new Date();
+    const startDate = new Date();
+
+    if (range === 'week') {
+      startDate.setDate(endDate.getDate() - 6);
+    } else if (range === 'month') {
+      startDate.setDate(endDate.getDate() - 29);
+    }
+
+    const rawLogs = await prisma.weightLog.findMany({
+      where: {
+        userId: userId,
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
       },
+      orderBy: { createdAt: 'asc' },
     });
 
-    return weightLogs;
+    const logMap = {};
+    rawLogs.forEach((log) => {
+      const dateString = log.createdAt.toISOString().split('T')[0];
+      logMap[dateString] = log.weight;
+    });
+
+    const filledLogs = [];
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const dateString = currentDate.toISOString().split('T')[0];
+
+      filledLogs.push({
+        date: dateString,
+        weight: logMap[dateString] || 0,
+      });
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return filledLogs;
   }
 
   static async createWeightLogAndUpdateProfile(userId, weight) {
