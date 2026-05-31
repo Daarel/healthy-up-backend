@@ -25,6 +25,14 @@ class RewardService {
     return newReward;
   }
 
+  static async deleteReward(rewardId) {
+    const deletedReward = await prisma.reward.delete({
+      where: { id: rewardId },
+    });
+
+    return deletedReward;
+  }
+
   static async claimReward(userId, rewardId) {
     return await prisma.$transaction(async (tx) => {
       const reward = await tx.reward.findUnique({ where: { id: rewardId } });

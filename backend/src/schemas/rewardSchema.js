@@ -43,4 +43,10 @@ const getMyRewardsQuerySchema = z.object({
   }).default('all'),
 });
 
-export { claimRewardSchema, createRewardSchema, getMyRewardsQuerySchema };
+const deleteRewardSchema = z.strictObject({
+  id: z
+    .string({ required_error: 'ID Reward wajib disertakan di URL' })
+    .uuid('Format ID Reward tidak valid'),
+});
+
+export { claimRewardSchema, createRewardSchema, deleteRewardSchema, getMyRewardsQuerySchema };

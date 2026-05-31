@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   claimRewardSchema,
   createRewardSchema,
+  deleteRewardSchema,
   getMyRewardsQuerySchema,
   useCouponSchema,
 } from '../schemas/rewardSchema.js';
@@ -54,6 +55,52 @@ class RewardController {
         err,
         res,
         'Gagal membuat reward baru',
+      );
+    }
+  }
+
+  /**
+   * * @desc    Delete a Reward Catalog
+   * ! @route   DELETE /api/v1/rewards/:id
+   * ? @access  Private (Admin Only)
+   */
+  static async deleteReward(req, res) {
+    try {
+      // Perhatikan: Kita mengambil ID dari req.params, bukan req.body
+      const { id } = deleteRewardSchema.parse(req.params);
+
+      await RewardService.deleteReward(id);
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Katalog reward berhasil dihapus secara permanen',
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return RewardController.handleZodError(err, res);
+      }
+
+      // P2025: Record to delete does not exist.
+      if (err.code === 'P2025') {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Katalog reward tidak ditemukan',
+        });
+      }
+
+      // P2003: Foreign key constraint failed on the field: `rewardId`
+      if (err.code === 'P2003') {
+        return res.status(400).json({
+          status: 'error',
+          message:
+            'Reward ini sudah pernah diklaim oleh pengguna sehingga tidak bisa dihapus permanen. Silakan nonaktifkan (isActive: false) reward ini sebagai gantinya.',
+        });
+      }
+
+      return RewardController.handleServerError(
+        err,
+        res,
+        'Gagal menghapus reward',
       );
     }
   }
@@ -111,8 +158,6 @@ class RewardController {
       );
     }
   }
-
-  // Tambahkan di dalam kelas RewardController
 
   /**
    * * @desc    Use/Verify Coupon at Physical Store
