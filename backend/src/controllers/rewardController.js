@@ -5,6 +5,7 @@ import {
   createRewardSchema,
   deleteRewardSchema,
   getMyRewardsQuerySchema,
+  getRewardsQuerySchema,
   toggleRewardSchema,
   useCouponSchema,
 } from '../schemas/rewardSchema.js';
@@ -12,19 +13,28 @@ import RewardService from '../services/rewardService.js';
 
 class RewardController {
   /**
-   * * @desc    Get All Active Rewards
-   * ! @route   GET /api/v1/rewards
+   * * @desc    Get All Active Rewards (with Category Filter)
+   * ! @route   GET /api/v1/rewards?category=makanan
    * ? @access  Private
    */
   static async getRewards(req, res) {
     try {
-      const rewards = await RewardService.getActiveRewards();
+      // Ambil nilai category dari URL query, misal: ?category=kesehatan
+      const { category } = getRewardsQuerySchema.parse(req.query);
+
+      const rewards = await RewardService.getActiveRewards(category);
 
       return res.status(200).json({
         status: 'success',
-        data: { rewards },
+        data: {
+          total: rewards.length,
+          rewards,
+        },
       });
     } catch (err) {
+      if (err instanceof z.ZodError) {
+        return RewardController.handleZodError(err, res);
+      }
       return RewardController.handleServerError(
         err,
         res,

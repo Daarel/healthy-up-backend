@@ -3,9 +3,15 @@ import crypto from 'crypto';
 import prisma from '../lib/prisma.js';
 
 class RewardService {
-  static async getActiveRewards() {
+  static async getActiveRewards(categoryQuery) {
+    const whereClause = { isActive: true };
+
+    if (categoryQuery && categoryQuery.toLowerCase() !== 'semua') {
+      whereClause.category = categoryQuery.toLowerCase();
+    }
+
     const rewards = await prisma.reward.findMany({
-      where: { isActive: true },
+      where: whereClause,
       orderBy: { pointsCost: 'asc' },
     });
 
@@ -16,6 +22,7 @@ class RewardService {
     const newReward = await prisma.reward.create({
       data: {
         name: rewardData.name,
+        category: rewardData.category, // Tambahan baru
         pointsCost: rewardData.pointsCost,
         stockQuantity: rewardData.stockQuantity,
         isActive: rewardData.isActive,

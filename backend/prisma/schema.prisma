@@ -129,6 +129,7 @@ model Mission {
 model Reward {
   id            String   @id @default(uuid()) @db.Uuid
   name          String   @db.VarChar(255)
+  category      String   @db.VarChar(50)
   pointsCost    Int
   stockQuantity Int      @default(0)
   isActive      Boolean  @default(true)
