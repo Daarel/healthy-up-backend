@@ -164,12 +164,10 @@ class AuthController {
         return AuthController.handleZodError(err, res);
 
       if (err.message === 'INCONSISTENT_PASSWORD')
-        return res
-          .status(400)
-          .json({
-            status: 'error',
-            message: 'Inconsistent input of new password',
-          });
+        return res.status(400).json({
+          status: 'error',
+          message: 'Inconsistent input of new password',
+        });
       if (err.message === 'INVALID_OTP')
         return res
           .status(400)
@@ -219,10 +217,11 @@ class AuthController {
 
   // helper methods
   static handleZodError(err, res) {
+    const validationIssues = err.issues || err.errors || [];
     return res.status(400).json({
       status: 'fail',
-      errors: err.errors.map((e) => ({
-        field: e.path[0],
+      errors: validationIssues.map((e) => ({
+        field: e.path[0] || 'payload',
         message: e.message,
       })),
     });

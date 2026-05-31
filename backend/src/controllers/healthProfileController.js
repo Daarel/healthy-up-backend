@@ -171,20 +171,22 @@ class HealthProfileController {
 
   // helper methods
   static handleZodError(err, res) {
+    const validationIssues = err.issues || err.errors || [];
     return res.status(400).json({
       status: 'fail',
-      errors: err.errors.map((e) => ({
-        field: e.path[0],
+      errors: validationIssues.map((e) => ({
+        field: e.path[0] || 'payload',
         message: e.message,
       })),
     });
   }
 
-  static handleServerError(err, res, contextMsg = 'Internal server error') {
-    console.error(`HealthProfileController Error (${contextMsg}):`, err);
+  static handleServerError(err, res) {
+    console.error('Terjadi Kesalahan di Controller:', err);
+
     return res.status(500).json({
       status: 'error',
-      message: 'Terjadi kesalahan pada server saat memproses permintaan.',
+      message: 'Internal server error',
     });
   }
 }

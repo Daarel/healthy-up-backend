@@ -155,15 +155,23 @@ class UserController {
 
   // helper methods
   static handleZodError(err, res) {
+    const validationIssues = err.issues || err.errors || [];
     return res.status(400).json({
       status: 'fail',
-      errors: err.errors.map((e) => ({ field: e.path[0], message: e.message })),
+      errors: validationIssues.map((e) => ({
+        field: e.path[0] || 'payload',
+        message: e.message,
+      })),
     });
   }
 
-  static handleServerError(err, res, customMessage = 'Internal server error') {
-    console.error('UserController Error:', err);
-    return res.status(500).json({ status: 'error', message: customMessage });
+  static handleServerError(err, res) {
+    console.error('Terjadi Kesalahan di Controller:', err);
+
+    return res.status(500).json({
+      status: 'error',
+      message: 'Internal server error',
+    });
   }
 }
 
