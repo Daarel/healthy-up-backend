@@ -133,6 +133,24 @@ class RewardService {
 
     return myRewards;
   }
+
+  static async toggleRewardStatus(rewardId) {
+    const reward = await prisma.reward.findUnique({
+      where: { id: rewardId },
+      select: { isActive: true },
+    });
+
+    if (!reward) throw new Error('REWARD_NOT_FOUND');
+
+    const updatedReward = await prisma.reward.update({
+      where: { id: rewardId },
+      data: {
+        isActive: !reward.isActive,
+      },
+    });
+
+    return updatedReward;
+  }
 }
 
 export default RewardService;

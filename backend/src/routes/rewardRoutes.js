@@ -12,8 +12,14 @@ router
 
 router.route('/:id').delete(protect, adminOnly, RewardController.deleteReward);
 
-router.get('/my-rewards', protect, RewardController.getMyRewards);
+router.patch(
+  '/:id/toggle',
+  protect,
+  adminOnly,
+  RewardController.toggleRewardStatus,
+);
 
+router.get('/my-rewards', protect, RewardController.getMyRewards);
 router.post('/claim', protect, RewardController.claimReward);
 router.post('/verify', protect, RewardController.verifyAndUseCoupon);
 

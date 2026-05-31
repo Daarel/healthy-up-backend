@@ -38,9 +38,11 @@ export const useCouponSchema = z.strictObject({
 });
 
 const getMyRewardsQuerySchema = z.object({
-  status: z.enum(['active', 'used', 'all'], {
-    invalid_type_error: "Status hanya boleh 'active', 'used', atau 'all'",
-  }).default('all'),
+  status: z
+    .enum(['active', 'used', 'all'], {
+      invalid_type_error: "Status hanya boleh 'active', 'used', atau 'all'",
+    })
+    .default('all'),
 });
 
 const deleteRewardSchema = z.strictObject({
@@ -49,4 +51,16 @@ const deleteRewardSchema = z.strictObject({
     .uuid('Format ID Reward tidak valid'),
 });
 
-export { claimRewardSchema, createRewardSchema, deleteRewardSchema, getMyRewardsQuerySchema };
+const toggleRewardSchema = z.strictObject({
+  id: z
+    .string({ required_error: 'ID Reward wajib disertakan di URL' })
+    .uuid('Format ID Reward tidak valid'),
+});
+
+export {
+  claimRewardSchema,
+  createRewardSchema,
+  deleteRewardSchema,
+  getMyRewardsQuerySchema,
+  toggleRewardSchema
+};

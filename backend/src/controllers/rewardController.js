@@ -5,6 +5,7 @@ import {
   createRewardSchema,
   deleteRewardSchema,
   getMyRewardsQuerySchema,
+  toggleRewardSchema,
   useCouponSchema,
 } from '../schemas/rewardSchema.js';
 import RewardService from '../services/rewardService.js';
@@ -101,6 +102,49 @@ class RewardController {
         err,
         res,
         'Gagal menghapus reward',
+      );
+    }
+  }
+
+  /**
+   * * @desc    Toggle Reward Active Status
+   * ! @route   PATCH /api/v1/rewards/:id/toggle
+   * ? @access  Private (Admin Only)
+   */
+  static async toggleRewardStatus(req, res) {
+    try {
+      const { id } = toggleRewardSchema.parse(req.params);
+
+      const updatedReward = await RewardService.toggleRewardStatus(id);
+
+      // Buat pesan dinamis berdasarkan status terbaru
+      const statusText = updatedReward.isActive
+        ? 'diaktifkan'
+        : 'dinonaktifkan';
+
+      return res.status(200).json({
+        status: 'success',
+        message: `Katalog reward berhasil ${statusText}`,
+        data: {
+          reward: updatedReward,
+        },
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return RewardController.handleZodError(err, res);
+      }
+
+      if (err.message === 'REWARD_NOT_FOUND') {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Katalog reward tidak ditemukan',
+        });
+      }
+
+      return RewardController.handleServerError(
+        err,
+        res,
+        'Gagal mengubah status reward',
       );
     }
   }
