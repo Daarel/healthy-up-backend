@@ -10,4 +10,6 @@ router
   .get(protect, RewardController.getRewards)
   .post(protect, adminOnly, RewardController.createReward);
 
+router.post('/claim', protect, RewardController.claimReward);
+
 export default router;

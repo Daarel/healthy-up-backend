@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import prisma from '../lib/prisma.js';
 
 class RewardService {
@@ -21,6 +23,53 @@ class RewardService {
     });
 
     return newReward;
+  }
+
+  static async claimReward(userId, rewardId) {
+    return await prisma.$transaction(async (tx) => {
+      const reward = await tx.reward.findUnique({ where: { id: rewardId } });
+      const user = await tx.user.findUnique({ where: { id: userId } });
+
+      if (!reward) throw new Error('REWARD_NOT_FOUND');
+      if (!reward.isActive || reward.stockQuantity <= 0) {
+        throw new Error('REWARD_OUT_OF_STOCK');
+      }
+      if (user.rewardPoints < reward.pointsCost) {
+        throw new Error('INSUFFICIENT_POINTS');
+      }
+
+      const newStock = reward.stockQuantity - 1;
+      const isStillActive = newStock > 0;
+      const remainingPoints = user.rewardPoints - reward.pointsCost;
+
+      await tx.reward.update({
+        where: { id: rewardId },
+        data: {
+          stockQuantity: newStock,
+          isActive: isStillActive,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { rewardPoints: remainingPoints },
+      });
+
+      const uniqueCode = `HLTY-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+      const userReward = await tx.userReward.create({
+        data: {
+          userId,
+          rewardId,
+          redemptionCode: uniqueCode,
+        },
+        include: {
+          reward: { select: { name: true } },
+        },
+      });
+
+      return { userReward, remainingPoints };
+    });
   }
 }
 

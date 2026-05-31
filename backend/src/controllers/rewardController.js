@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { createRewardSchema } from '../schemas/rewardSchema.js';
+import { claimRewardSchema, createRewardSchema } from '../schemas/rewardSchema.js';
 import RewardService from '../services/rewardService.js';
 
 class RewardController {
@@ -53,6 +53,64 @@ class RewardController {
     }
   }
 
+  /**
+   * * @desc    Claim / Redeem a Reward
+   * ! @route   POST /api/v1/rewards/claim
+   * ? @access  Private
+   */
+  static async claimReward(req, res) {
+    try {
+      const { rewardId } = claimRewardSchema.parse(req.body);
+      const userId = req.user.id;
+
+      const { userReward, remainingPoints } = await RewardService.claimReward(
+        userId,
+        rewardId,
+      );
+
+      return res.status(201).json({
+        status: 'success',
+        message: `Berhasil menukarkan kupon: ${userReward.reward.name}`,
+        data: {
+          redemptionCode: userReward.redemptionCode,
+          remainingPoints,
+        },
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return RewardController.handleZodError(err, res);
+      }
+
+      if (err.message === 'REWARD_NOT_FOUND') {
+        return res
+          .status(404)
+          .json({ status: 'error', message: 'Kupon tidak ditemukan' });
+      }
+      if (err.message === 'REWARD_OUT_OF_STOCK') {
+        return res
+          .status(400)
+          .json({
+            status: 'error',
+            message: 'Maaf, kupon ini sudah habis atau tidak aktif',
+          });
+      }
+      if (err.message === 'INSUFFICIENT_POINTS') {
+        return res
+          .status(400)
+          .json({
+            status: 'error',
+            message: 'Poin Anda tidak cukup untuk menukarkan kupon ini',
+          });
+      }
+
+      return RewardController.handleServerError(
+        err,
+        res,
+        'Gagal memproses klaim kupon',
+      );
+    }
+  }
+
   // helper methods
   static handleZodError(err, res) {
     const validationIssues = err.issues || err.errors || [];
@@ -75,4 +133,4 @@ class RewardController {
   }
 }
 
-export default RewardController
+export default RewardController;

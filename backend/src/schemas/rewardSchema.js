@@ -24,4 +24,10 @@ const createRewardSchema = z.strictObject({
   isActive: z.boolean().optional().default(true),
 });
 
-export { createRewardSchema };
+const claimRewardSchema = z.strictObject({
+  rewardId: z
+    .string({ required_error: 'ID Reward wajib diisi' })
+    .uuid('Format ID Reward tidak valid'),
+});
+
+export { claimRewardSchema, createRewardSchema };
