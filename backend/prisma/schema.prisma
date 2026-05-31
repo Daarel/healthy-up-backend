@@ -145,6 +145,9 @@ model UserReward {
   redemptionCode String   @unique @db.VarChar(100)
   redeemedAt     DateTime @default(now()) @db.Timestamptz
 
+  isUsed Boolean   @default(false)
+  usedAt DateTime? @db.Timestamptz
+
   // Relations
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   reward Reward @relation(fields: [rewardId], references: [id], onDelete: Restrict)
