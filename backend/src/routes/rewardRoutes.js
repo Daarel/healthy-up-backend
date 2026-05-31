@@ -10,6 +10,8 @@ router
   .get(protect, RewardController.getRewards)
   .post(protect, adminOnly, RewardController.createReward);
 
+router.get('/my-rewards', protect, RewardController.getMyRewards);
+
 router.post('/claim', protect, RewardController.claimReward);
 router.post('/verify', protect, RewardController.verifyAndUseCoupon);
 
