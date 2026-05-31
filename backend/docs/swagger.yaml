@@ -1047,7 +1047,7 @@ paths:
           description: Terjadi kesalahan pada server
 
     post:
-      summary: Membuat katalog reward baru (Admin)
+      summary: Membuat katalog reward baru (Admin Only)
       description: Menambahkan reward baru ke dalam sistem. Hanya dapat diakses oleh Admin.
       tags: [Rewards]
       security:
@@ -1321,7 +1321,7 @@ paths:
 
   /rewards/{id}:
     delete:
-      summary: Menghapus katalog reward permanen (Admin)
+      summary: Menghapus katalog reward permanen (Admin Only)
       description: Menghapus data reward. Jika reward sudah pernah diklaim pengguna, penghapusan akan ditolak (Constraint Prisma P2003).
       tags: [Rewards]
       security:
@@ -1372,7 +1372,7 @@ paths:
 
   /rewards/{id}/toggle:
     patch:
-      summary: Mengubah status aktif/nonaktif reward (Admin)
+      summary: Mengubah status aktif/nonaktif reward (Admin Only)
       description: Membalikkan (toggle) nilai boolean `isActive` pada suatu reward. Solusi alternatif jika reward tidak bisa dihapus permanen.
       tags: [Rewards]
       security:
