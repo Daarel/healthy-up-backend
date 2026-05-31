@@ -18,7 +18,8 @@ tags:
 paths:
   /auth/register:
     post:
-      summary: Mendaftarkan akun baru
+      summary: Mendaftarkan akun pengguna baru
+      description: Endpoint untuk membuat akun baru. Memerlukan username unik dan email yang belum terdaftar.
       tags: [Auth]
       requestBody:
         required: true
@@ -30,22 +31,73 @@ paths:
               properties:
                 username:
                   type: string
-                  example: Daarel Safa
+                  minLength: 2
+                  maxLength: 100
+                  example: 'daarel'
                 email:
                   type: string
-                  example: daarel@example.com
+                  format: email
+                  maxLength: 70
+                  example: 'daarel@student.upj.ac.id'
                 password:
                   type: string
-                  example: PasswordKuat123!
+                  format: password
+                  minLength: 8
+                  maxLength: 30
+                  example: 'SandiKuat123!'
       responses:
         '201':
-          description: Berhasil mendaftar
+          description: Akun berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          username:
+                            type: string
+                          email:
+                            type: string
+                      token:
+                        type: string
+                        description: JWT Bearer token
         '400':
-          description: Validasi gagal atau email sudah terdaftar
+          description: Validasi gagal (Zod) atau data sudah terdaftar (Email/Username)
+          content:
+            application/json:
+              examples:
+                ValidationError:
+                  value:
+                    status: fail
+                    errors:
+                      [
+                        {
+                          field: 'email',
+                          message: 'Email maksimal 70 karakter',
+                        },
+                      ]
+                ConflictError:
+                  value:
+                    status: error
+                    message: 'Username sudah digunakan, silakan pilih nama lain'
+        '500':
+          description: Terjadi kesalahan pada server
 
   /auth/login:
     post:
-      summary: Login pengguna
+      summary: Masuk ke akun pengguna
+      description: Autentikasi pengguna menggunakan email dan password untuk mendapatkan JWT.
       tags: [Auth]
       requestBody:
         required: true
@@ -57,73 +109,82 @@ paths:
               properties:
                 email:
                   type: string
-                  example: daarel@example.com
+                  format: email
+                  example: 'daarel@student.upj.ac.id'
                 password:
                   type: string
-                  example: PasswordKuat123!
+                  format: password
+                  example: 'SandiKuat123!'
       responses:
         '200':
-          description: Berhasil login (mengembalikan token)
+          description: Berhasil login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          username:
+                            type: string
+                          email:
+                            type: string
+                      token:
+                        type: string
+        '400':
+          description: Validasi input gagal (Zod)
         '401':
-          description: Kredensial tidak valid
+          description: Kredensial tidak valid (Email atau Password salah)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Invalid email and password
+        '500':
+          description: Terjadi kesalahan pada server
 
   /auth/logout:
     post:
-      summary: Logout pengguna (menghapus cookie)
+      summary: Keluar dari akun pengguna
+      description: Menghapus sesi pengguna dengan membersihkan cookie JWT.
       tags: [Auth]
       responses:
         '200':
           description: Berhasil logout
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: berhasil log out
+        '500':
+          description: Terjadi kesalahan pada server
 
   /auth/forgot-password:
     post:
       summary: Meminta kode OTP untuk reset password
-      tags: [Auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  example: daarel@example.com
-      responses:
-        '200':
-          description: OTP berhasil dikirim ke email
-
-  /auth/reset-password:
-    post:
-      summary: Mereset password menggunakan kode OTP
-      tags: [Auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email, otp, newPassword]
-              properties:
-                email:
-                  type: string
-                  example: daarel@example.com
-                otp:
-                  type: string
-                  example: '123456'
-                newPassword:
-                  type: string
-                  example: PasswordBaru321!
-      responses:
-        '200':
-          description: Password berhasil diubah
-        '400':
-          description: OTP salah atau kadaluwarsa
-
-  /auth/resend-otp:
-    post:
-      summary: Meminta pengiriman ulang kode OTP
+      description: Menghasilkan kode OTP 6 digit dan mengirimkannya ke email pengguna. Berlaku selama 1 menit.
       tags: [Auth]
       requestBody:
         required: true
@@ -136,18 +197,141 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: daarel@example.com
+                  example: 'daarel@student.upj.ac.id'
       responses:
         '200':
-          description: Kode OTP baru berhasil dikirim ke email
+          description: Permintaan diproses (pesan sukses akan selalu sama demi keamanan, meskipun email tidak ada)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Jika email terdaftar di sistem kami, kode OTP telah dikirimkan
         '400':
-          description: Validasi email gagal
+          description: Validasi format email gagal
         '500':
-          description: Gagal mengirimkan email karena masalah server
+          description: Gagal mengirim email (SMTP Error)
+
+  /auth/reset-password:
+    post:
+      summary: Memverifikasi OTP dan mengganti password
+      description: Menggunakan kode OTP yang diterima dari email untuk mengatur ulang password baru.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp, newPassword, confirmedPassword]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: 'daarel@student.upj.ac.id'
+                otp:
+                  type: string
+                  description: Kode OTP 6 digit
+                  example: '123456'
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 30
+                  example: 'PasswordBaru123!'
+                confirmedPassword:
+                  type: string
+                  format: password
+                  example: 'PasswordBaru123!'
+      responses:
+        '200':
+          description: Password berhasil diubah
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Password has successfully changed
+        '400':
+          description: Validasi gagal (Zod) atau OTP bermasalah
+          content:
+            application/json:
+              examples:
+                ZodError:
+                  value:
+                    status: fail
+                    errors:
+                      [
+                        {
+                          field: 'confirmedPassword',
+                          message: 'Password dan konfirmasi password tidak cocok',
+                        },
+                      ]
+                InvalidOTP:
+                  value:
+                    status: error
+                    message: 'Invalid or missing OTP'
+                IncorrectOTP:
+                  value:
+                    status: error
+                    message: 'Incorrect OTP code'
+                ExpiredOTP:
+                  value:
+                    status: error
+                    message: 'OTP has expired. Please request a new one.'
+        '500':
+          description: Terjadi kesalahan pada server
+
+  /auth/resend-otp:
+    post:
+      summary: Mengirim ulang kode OTP
+      description: Menghasilkan kode OTP baru jika kode sebelumnya kedaluwarsa atau tidak masuk ke email.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: 'daarel@student.upj.ac.id'
+      responses:
+        '200':
+          description: OTP baru berhasil dikirim
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Kode OTP baru telah berhasil dikirimkan ke email Anda
+        '400':
+          description: Validasi format email gagal
+        '500':
+          description: Gagal mengirim email OTP
 
   /health-profiles/:
     post:
-      summary: Membuat profil kesehatan pengguna (Satu pengguna, satu profil)
+      summary: Membuat profil kesehatan pengguna
+      description: Endpoint untuk menyimpan data biometrik awal pengguna. Satu pengguna hanya dapat memiliki satu profil kesehatan.
       tags: [Health Profiles]
       security:
         - bearerAuth: []
@@ -161,28 +345,89 @@ paths:
               properties:
                 gender:
                   type: string
+                  enum: [male, female]
                   example: 'male'
                 age:
                   type: integer
+                  minimum: 1
+                  maximum: 120
                   example: 21
                 heightCm:
                   type: number
+                  format: float
+                  minimum: 50
+                  maximum: 250
                   example: 175.5
                 weightKg:
                   type: number
-                  example: 70.2
+                  format: float
+                  minimum: 10
+                  maximum: 300
+                  example: 75.0
                 goalWeight:
                   type: number
+                  format: float
+                  minimum: 10
+                  maximum: 300
                   example: 65.0
       responses:
         '201':
           description: Profil kesehatan berhasil disimpan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Profil kesehatan berhasil disimpan
+                  data:
+                    type: object
+                    properties:
+                      profile:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          userId:
+                            type: string
+                            format: uuid
+                          gender:
+                            type: string
+                          age:
+                            type: integer
+                          heightCm:
+                            type: number
+                          weightKg:
+                            type: number
+                          goalWeight:
+                            type: number
         '400':
-          description: Validasi gagal atau profil sudah ada
+          description: Validasi gagal (Zod) atau profil sudah ada
+          content:
+            application/json:
+              examples:
+                ValidationError:
+                  value:
+                    status: fail
+                    errors: [{ field: 'age', message: 'Usia minimal 1 tahun' }]
+                ProfileExists:
+                  value:
+                    status: error
+                    message: 'Profil kesehatan untuk pengguna ini sudah ada'
+        '401':
+          description: Sesi tidak valid atau tidak ada token
+        '500':
+          description: Terjadi kesalahan pada server
 
   /health-profiles/calories:
     get:
-      summary: Mendapatkan ringkasan kalori harian dan mingguan (Masuk & Terbakar)
+      summary: Mendapatkan ringkasan kalori harian dan mingguan
+      description: Menampilkan total kalori terbakar (dari misi) dan kalori masuk (dari asupan makanan) untuk hari ini dan minggu ini, beserta target berat badan pengguna.
       tags: [Health Profiles]
       security:
         - bearerAuth: []
@@ -214,22 +459,24 @@ paths:
                         properties:
                           today:
                             type: integer
+                            example: 1500
                           weekly:
                             type: integer
+                            example: 8500
                       profile:
                         type: object
                         properties:
                           goalWeight:
                             type: number
-                            format: float
                             example: 65.0
         '401':
-          description: Sesi tidak valid atau belum login
+          description: Sesi tidak valid atau tidak ada token
         '500':
-          description: Terjadi kesalahan pada server saat mengambil data dashboard
+          description: Gagal mengambil data dashboard summary
 
     post:
       summary: Mencatat asupan kalori (Kalori Masuk)
+      description: Menambahkan riwayat asupan kalori harian pengguna. Parameter nama makanan bersifat opsional.
       tags: [Health Profiles]
       security:
         - bearerAuth: []
@@ -243,7 +490,11 @@ paths:
               properties:
                 calories:
                   type: integer
-                  example: 500
+                  minimum: 1
+                  example: 450
+                foodName:
+                  type: string
+                  example: 'Nasi Goreng Spesial'
       responses:
         '201':
           description: Asupan kalori berhasil dicatat
@@ -272,27 +523,58 @@ paths:
                             format: uuid
                           calories:
                             type: integer
+                          foodName:
+                            type: string
         '400':
-          description: Validasi input gagal (misal kalori bukan angka)
+          description: Validasi input gagal (misal kalori bukan bilangan bulat positif)
         '401':
-          description: Sesi tidak valid atau belum login
+          description: Sesi tidak valid atau tidak ada token
         '500':
-          description: Terjadi kesalahan pada server saat menyimpan kalori
+          description: Error creating calorie log
 
   /health-profiles/weight-logs:
     get:
-      summary: Mendapatkan riwayat log berat badan pengguna
+      summary: Mendapatkan riwayat pencatatan berat badan pengguna
+      description: Menampilkan daftar seluruh rekaman berat badan harian yang pernah diinput oleh pengguna, diurutkan dari yang paling baru.
       tags: [Health Profiles]
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Berhasil mengambil riwayat berat badan
+          description: Berhasil mengambil data riwayat berat badan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      weightLogs:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            weight:
+                              type: number
+                              format: float
+                            loggedAt:
+                              type: string
+                              format: date-time
+        '401':
+          description: Sesi tidak valid atau tidak ada token
         '500':
-          description: Gagal mengambil data dari server
+          description: Gagal fetch weight logs
 
     post:
-      summary: Mencatat log berat badan baru dan memperbarui profil kesehatan
+      summary: Mencatat berat badan harian
+      description: Menambahkan riwayat berat badan harian pengguna, dan secara otomatis memperbarui berat badan di tabel Profil Kesehatan utama.
       tags: [Health Profiles]
       security:
         - bearerAuth: []
@@ -306,72 +588,149 @@ paths:
               properties:
                 weight:
                   type: number
+                  format: float
+                  minimum: 20
+                  maximum: 200
                   example: 68.5
       responses:
         '201':
-          description: Berat badan berhasil dicatat dan profil diperbarui
+          description: Berat badan berhasil dicatat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Berat badan berhasil dicatat dan profil kesehatan telah diperbarui!
+                  data:
+                    type: object
+                    properties:
+                      weightLog:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          userId:
+                            type: string
+                            format: uuid
+                          weight:
+                            type: number
+                            format: float
+                      currentWeight:
+                        type: number
+                        format: float
         '400':
-          description: Validasi input gagal
+          description: Validasi input gagal (Zod)
+        '401':
+          description: Sesi tidak valid atau tidak ada token
         '404':
-          description: Profil kesehatan belum dibuat
-
+          description: Profil kesehatan belum dibuat untuk pengguna ini
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Profil kesehatan belum dibuat untuk pengguna ini.
+        '500':
+          description: Terjadi kesalahan pada server saat memproses transaksi
   /users/profile:
     get:
-      summary: Mendapatkan data profil pengguna yang sedang login
+      summary: Mendapatkan informasi profil pengguna
+      description: Mengambil data profil lengkap pengguna yang sedang login, termasuk level, EXP, dan gelar peringkat (rank title).
       tags: [Users]
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Berhasil mengambil profil pengguna
+          description: Berhasil mengambil data profil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          username:
+                            type: string
+                            example: 'daarel'
+                          email:
+                            type: string
+                            format: email
+                            example: 'daarel@student.upj.ac.id'
+                          rankTitle:
+                            type: string
+                            example: 'pemula'
+                          level:
+                            type: integer
+                            example: 3
+                          experiencePoints:
+                            type: integer
+                            example: 2500
+                          rewardPoints:
+                            type: integer
+                            example: 150
+                          streakCount:
+                            type: integer
+                            example: 5
+                          profilePicture:
+                            type: string
+                            format: uri
         '401':
-          description: Tidak ada token atau token tidak valid
+          description: Sesi tidak valid atau tidak ada token
         '404':
-          description: Pengguna tidak ditemukan
+          description: Pengguna tidak ditemukan di database
         '500':
-          description: Terjadi kesalahan pada server
+          description: Terjadi kesalahan saat mengambil profil
 
     delete:
-      summary: Menghapus akun pengguna dan seluruh data terkait secara permanen
+      summary: Menghapus akun pengguna permanen
+      description: Menghapus seluruh data pengguna dari database secara kaskade dan menghapus sesi token JWT.
       tags: [Users]
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Akun berhasil dihapus dan sesi diakhiri
+          description: Akun berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Akun dan seluruh data Anda telah dihapus secara permanen.
+                  action:
+                    type: string
+                    example: redirect_to_login
+        '401':
+          description: Sesi tidak valid atau tidak ada token
         '500':
-          description: Terjadi kesalahan pada server saat menghapus akun
+          description: Terjadi kesalahan saat menghapus akun
 
-  /users/all-users:
-    get:
-      summary: Mendapatkan daftar seluruh pengguna dengan sistem pagination
-      tags: [Users]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: query
-          username: page
-          schema:
-            type: integer
-            default: 1
-          description: Nomor halaman
-        - in: query
-          username: limit
-          schema:
-            type: integer
-            default: 10
-          description: Jumlah data yang ditampilkan per halaman
-      responses:
-        '200':
-          description: Berhasil mengambil daftar pengguna beserta metadata pagination
-        '400':
-          description: Validasi query parameter gagal
-        '500':
-          description: Terjadi kesalahan pada server
-
-  /users/user/picture:
+  /users/profile/picture:
     patch:
-      summary: Memperbarui URL foto profil pengguna
+      summary: Memperbarui foto profil pengguna
+      description: Mengubah URL foto profil pengguna. URL harus berupa link gambar yang valid.
       tags: [Users]
       security:
         - bearerAuth: []
@@ -386,27 +745,176 @@ paths:
                 imageUrl:
                   type: string
                   format: uri
-                  example: 'https://url-gambar-supabase.com/foto.jpg'
+                  example: 'https://ui-avatars.com/api/?name=Daarel+Safa'
       responses:
         '200':
           description: Foto profil berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Foto profil berhasil diperbarui
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          username:
+                            type: string
+                          profilePicture:
+                            type: string
+                            format: uri
         '400':
-          description: Validasi input (URL) gagal
+          description: Validasi gagal (URL tidak valid)
+        '401':
+          description: Sesi tidak valid atau tidak ada token
         '500':
-          description: Terjadi kesalahan pada server
+          description: Gagal memperbarui foto profil
 
-  /users/user/level-up:
+  /users/level-up:
     post:
-      summary: Memproses kenaikan level pengguna jika batas EXP telah tercapai
+      summary: Memproses kenaikan level pengguna (Level Up)
+      description: Mengevaluasi EXP pengguna saat ini. Jika mencukupi (Level * 1000), level akan dinaikkan, sisa EXP dikalkulasi, dan gelar (rank title) akan diperbarui otomatis sesuai threshold.
       tags: [Users]
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Berhasil naik level, EXP dikurangi, dan Title diperbarui jika memenuhi syarat
+          description: Berhasil naik level
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Selamat! Anda berhasil naik ke Level 6
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          username:
+                            type: string
+                          level:
+                            type: integer
+                            example: 6
+                          rankTitle:
+                            type: string
+                            example: penggerak
+                          experiencePoints:
+                            type: integer
+                            description: Sisa EXP setelah dikurangi biaya naik level
         '400':
-          description: EXP pengguna belum mencukupi untuk naik level
+          description: EXP tidak mencukupi untuk naik level
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: EXP Anda belum cukup untuk naik level
+        '401':
+          description: Sesi tidak valid atau tidak ada token
         '404':
           description: Pengguna tidak ditemukan
         '500':
-          description: Terjadi kesalahan pada server saat memproses kenaikan level
+          description: Gagal memproses kenaikan level
+  /users/all-users:
+    get:
+      summary: Mendapatkan seluruh data pengguna (Admin Only)
+      description: Mengambil daftar seluruh pengguna di platform dengan fitur paginasi. Hanya dapat diakses oleh peran Admin.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Nomor halaman
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+          description: Jumlah data per halaman
+      responses:
+        '200':
+          description: Berhasil mengambil daftar pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            username:
+                              type: string
+                            email:
+                              type: string
+                              format: email
+                            rankTitle:
+                              type: string
+                            level:
+                              type: integer
+                            streakCount:
+                              type: integer
+                            createdAt:
+                              type: string
+                              format: date-time
+                      pagination:
+                        type: object
+                        properties:
+                          totalData:
+                            type: integer
+                          totalPages:
+                            type: integer
+                          currentPage:
+                            type: integer
+                          limit:
+                            type: integer
+        '400':
+          description: Format query page/limit tidak valid
+        '401':
+          description: Sesi tidak valid atau tidak ada token
+        '403':
+          description: Akses ditolak (Bukan Admin)
+        '500':
+          description: Internal server error
