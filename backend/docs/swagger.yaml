@@ -14,6 +14,8 @@ tags:
     description: Endpoint untuk manajemen profil kesehatan dan log berat badan
   - name: Users
     description: Endpoint untuk manajemen data dan akun pengguna
+  - name: Rewards
+    description: Endpoint untuk manajemen reward yang aktif dan telah diklaim dengan kode redeem
 
 paths:
   /auth/register:
@@ -918,3 +920,433 @@ paths:
           description: Akses ditolak (Bukan Admin)
         '500':
           description: Internal server error
+  /rewards:
+    get:
+      summary: Mendapatkan daftar katalog reward aktif
+      description: Mengambil semua reward yang tersedia untuk ditukarkan (isActive true), diurutkan dari poin termurah. Mendukung filter berdasarkan kategori.
+      tags: [Rewards]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter katalog berdasarkan kategori (contoh 'kesehatan', 'makanan', 'gym'). Kosongkan atau isi 'semua' untuk melihat semua kategori.
+      responses:
+        '200':
+          description: Berhasil mengambil daftar reward
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 5
+                      rewards:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            name:
+                              type: string
+                              example: 'Voucher Mie Gacoan Rp 50.000'
+                            category:
+                              type: string
+                              example: 'makanan'
+                            pointsCost:
+                              type: integer
+                              example: 500
+                            stockQuantity:
+                              type: integer
+                              example: 20
+                            isActive:
+                              type: boolean
+                              example: true
+                            createdAt:
+                              type: string
+                              format: date-time
+        '401':
+          description: Sesi tidak valid atau belum login
+        '500':
+          description: Terjadi kesalahan pada server
+
+    post:
+      summary: Membuat katalog reward baru (Admin)
+      description: Menambahkan reward baru ke dalam sistem. Hanya dapat diakses oleh Admin.
+      tags: [Rewards]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, category, pointsCost, stockQuantity]
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 255
+                  example: 'Voucher Gym 1 Bulan'
+                category:
+                  type: string
+                  example: 'gym'
+                pointsCost:
+                  type: integer
+                  minimum: 1
+                  example: 1000
+                stockQuantity:
+                  type: integer
+                  minimum: 0
+                  example: 15
+                isActive:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Reward berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Katalog reward baru berhasil ditambahkan!
+                  data:
+                    type: object
+                    properties:
+                      reward:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          name:
+                            type: string
+                          category:
+                            type: string
+                          pointsCost:
+                            type: integer
+                          stockQuantity:
+                            type: integer
+                          isActive:
+                            type: boolean
+        '400':
+          description: Validasi input gagal (Zod)
+        '401':
+          description: Sesi tidak valid atau belum login
+        '403':
+          description: Akses ditolak (Bukan Admin)
+        '500':
+          description: Terjadi kesalahan pada server
+
+  /rewards/my-rewards:
+    get:
+      summary: Melihat daftar kupon milik pengguna (My Rewards)
+      description: Mengambil histori penukaran kupon milik pengguna yang sedang login. Mendukung filter status.
+      tags: [Rewards]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, used, all]
+            default: all
+          description: Filter status kupon. 'active' untuk kupon yang belum dihanguskan, 'used' untuk riwayat terpakai, atau 'all' untuk semua.
+      responses:
+        '200':
+          description: Berhasil mengambil daftar kupon pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 2
+                      myRewards:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            userId:
+                              type: string
+                              format: uuid
+                            rewardId:
+                              type: string
+                              format: uuid
+                            redemptionCode:
+                              type: string
+                              example: 'HLTY-8F2A1B'
+                            redeemedAt:
+                              type: string
+                              format: date-time
+                            isUsed:
+                              type: boolean
+                              example: false
+                            usedAt:
+                              type: string
+                              format: date-time
+                              nullable: true
+                            reward:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  example: 'Voucher Mie Gacoan Rp 50.000'
+                                pointsCost:
+                                  type: integer
+                                  example: 500
+        '400':
+          description: Format query status tidak valid
+        '401':
+          description: Sesi tidak valid atau belum login
+        '500':
+          description: Gagal mengambil daftar kupon
+
+  /rewards/claim:
+    post:
+      summary: Mengklaim atau menukarkan poin dengan kupon
+      description: Membeli kupon menggunakan poin. Sistem akan memvalidasi sisa stok dan kecukupan poin. Jika berhasil, akan menghasilkan redemptionCode (kode unik).
+      tags: [Rewards]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rewardId]
+              properties:
+                rewardId:
+                  type: string
+                  format: uuid
+                  example: '123e4567-e89b-12d3-a456-426614174000'
+      responses:
+        '201':
+          description: Berhasil menukarkan kupon
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: 'Berhasil menukarkan kupon: Voucher Mie Gacoan Rp 50.000'
+                  data:
+                    type: object
+                    properties:
+                      redemptionCode:
+                        type: string
+                        example: 'HLTY-8F2A1B'
+                      remainingPoints:
+                        type: integer
+                        example: 1500
+        '400':
+          description: Stok habis atau poin pengguna tidak mencukupi
+          content:
+            application/json:
+              examples:
+                OutOfStock:
+                  value:
+                    status: error
+                    message: 'Maaf, kupon ini sudah habis atau tidak aktif'
+                InsufficientPoints:
+                  value:
+                    status: error
+                    message: 'Poin Anda tidak cukup untuk menukarkan kupon ini'
+        '401':
+          description: Sesi tidak valid atau belum login
+        '404':
+          description: Katalog kupon tidak ditemukan
+        '500':
+          description: Gagal memproses klaim kupon
+
+  /rewards/verify:
+    post:
+      summary: Memverifikasi dan menghanguskan kupon di toko fisik
+      description: Kasir atau pengguna memasukkan kode penukaran. Sistem mengecek validitas dan status kupon. Jika valid, status isUsed akan diubah menjadi true.
+      tags: [Rewards]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [redemptionCode]
+              properties:
+                redemptionCode:
+                  type: string
+                  minLength: 5
+                  example: 'HLTY-8F2A1B'
+      responses:
+        '200':
+          description: Kupon berhasil diverifikasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Kupon berhasil diverifikasi dan dihanguskan!
+                  data:
+                    type: object
+                    properties:
+                      rewardName:
+                        type: string
+                        example: 'Voucher Mie Gacoan Rp 50.000'
+                      username:
+                        type: string
+                        example: 'daarel'
+                      redemptionCode:
+                        type: string
+                        example: 'HLTY-8F2A1B'
+        '400':
+          description: Validasi Zod gagal atau kupon sudah pernah dipakai
+          content:
+            application/json:
+              examples:
+                AlreadyUsed:
+                  value:
+                    status: error
+                    message: 'Kupon ini sudah pernah digunakan sebelumnya!'
+        '401':
+          description: Sesi tidak valid atau belum login
+        '404':
+          description: Kode kupon salah atau tidak ditemukan
+        '500':
+          description: Gagal memverifikasi kupon
+
+  /rewards/{id}:
+    delete:
+      summary: Menghapus katalog reward permanen (Admin)
+      description: Menghapus data reward. Jika reward sudah pernah diklaim pengguna, penghapusan akan ditolak (Constraint Prisma P2003).
+      tags: [Rewards]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID dari reward yang akan dihapus
+      responses:
+        '200':
+          description: Berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Katalog reward berhasil dihapus secara permanen
+        '400':
+          description: Ditolak karena reward sudah diklaim pengguna (P2003)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: 'Reward ini sudah pernah diklaim oleh pengguna sehingga tidak bisa dihapus permanen. Silakan nonaktifkan (isActive: false) reward ini sebagai gantinya.'
+        '401':
+          description: Sesi tidak valid
+        '403':
+          description: Akses ditolak (Bukan Admin)
+        '404':
+          description: Katalog reward tidak ditemukan
+        '500':
+          description: Terjadi kesalahan pada server
+
+  /rewards/{id}/toggle:
+    patch:
+      summary: Mengubah status aktif/nonaktif reward (Admin)
+      description: Membalikkan (toggle) nilai boolean `isActive` pada suatu reward. Solusi alternatif jika reward tidak bisa dihapus permanen.
+      tags: [Rewards]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID dari reward yang akan diubah statusnya
+      responses:
+        '200':
+          description: Status berhasil diubah
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: 'Katalog reward berhasil dinonaktifkan'
+                  data:
+                    type: object
+                    properties:
+                      reward:
+                        type: object
+                        properties:
+                          isActive:
+                            type: boolean
+        '401':
+          description: Sesi tidak valid
+        '403':
+          description: Akses ditolak (Bukan Admin)
+        '404':
+          description: Katalog reward tidak ditemukan
+        '500':
+          description: Gagal mengubah status reward
