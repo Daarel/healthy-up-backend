@@ -42,6 +42,12 @@ class AuthController {
           .status(400)
           .json({ status: 'error', message: 'Email is already registered' });
       }
+      if (err.message === 'USERNAME_ALREADY_TAKEN') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Username sudah digunakan, silakan pilih nama lain',
+        });
+      }
       return AuthController.handleServerError(err, res);
     }
   }
@@ -138,18 +144,32 @@ class AuthController {
    */
   static async resetPassword(req, res) {
     try {
-      const { email, otp, newPassword } = resetPasswordSchema.parse(req.body);
+      const { email, otp, newPassword, confirmedPassword } =
+        resetPasswordSchema.parse(req.body);
 
-      await AuthService.resetUserPassword(email, otp, newPassword);
+      await AuthService.resetUserPassword(
+        email,
+        otp,
+        newPassword,
+        confirmedPassword,
+      );
 
       return res.status(200).json({
         status: 'success',
         message: 'Password has successfully changed',
       });
     } catch (err) {
+      console.log(err);
       if (err instanceof z.ZodError)
         return AuthController.handleZodError(err, res);
 
+      if (err.message === 'INCONSISTENT_PASSWORD')
+        return res
+          .status(400)
+          .json({
+            status: 'error',
+            message: 'Inconsistent input of new password',
+          });
       if (err.message === 'INVALID_OTP')
         return res
           .status(400)

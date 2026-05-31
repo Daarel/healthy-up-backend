@@ -6,9 +6,13 @@ import { sendEmail } from '../utils/sendEmail.js';
 
 class AuthService {
   static async registerUser(username, email, password) {
-    const userExists = await prisma.user.findUnique({ where: { email } });
+    const emailExists = await prisma.user.findUnique({ where: { email } });
+    if (emailExists) throw new Error('EMAIL_ALREADY_REGISTERED');
 
-    if (userExists) throw new Error('EMAIL_ALREADY_REGISTERED');
+    const usernameExists = await prisma.user.findUnique({
+      where: { username },
+    });
+    if (usernameExists) throw new Error('USERNAME_ALREADY_TAKEN');
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -74,9 +78,11 @@ class AuthService {
     }
   }
 
-  static async resetUserPassword(email, otp, newPassword) {
+  static async resetUserPassword(email, otp, newPassword, confirmedPassword) {
     const otpRecord = await prisma.otpCode.findUnique({ where: { email } });
 
+    if (newPassword !== confirmedPassword)
+      throw new Error('INCONSISTENT_PASSWORD');
     if (!otpRecord) throw new Error('INVALID_OTP');
     if (otpRecord.code !== otp) throw new Error('INCORRECT_OTP');
 
