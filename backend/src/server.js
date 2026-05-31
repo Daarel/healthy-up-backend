@@ -6,7 +6,6 @@ import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yamljs';
 
-import { globalErrorHandler } from './middleware/errorMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import healthProfileRoutes from './routes/healthProfileRoutes.js';
 import userProfileRoutes from './routes/userRoutes.js';
@@ -41,8 +40,6 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-app.use(globalErrorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on PORT ${PORT}`);
