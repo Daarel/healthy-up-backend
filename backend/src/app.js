@@ -7,6 +7,7 @@ import yaml from 'yamljs';
 
 import authRoutes from './routes/authRoutes.js';
 import healthProfileRoutes from './routes/healthProfileRoutes.js';
+import rewardRoutes from './routes/rewardRoutes.js';
 import userProfileRoutes from './routes/userRoutes.js';
 
 const app = express();
@@ -27,6 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/health-profiles', healthProfileRoutes);
 app.use('/api/v1/users', userProfileRoutes);
+app.use('/api/v1/reward', rewardRoutes);
 
 // documentation
 const swaggerDocument = yaml.load(
