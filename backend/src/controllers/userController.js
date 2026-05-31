@@ -173,9 +173,14 @@ class UserController {
       const userId = req.user.id;
       const updatedUser = await UserService.processLevelUp(userId);
 
+      const isGotNewBadge = [10, 20, 30].includes(updatedUser.level);
+      const extraMessage = isGotNewBadge
+        ? ' dan Anda mendapatkan lencana baru!'
+        : '!';
+
       return res.status(200).json({
         status: 'success',
-        message: `Selamat! Anda berhasil naik ke Level ${updatedUser.level}`,
+        message: `Selamat! Anda berhasil naik ke Level ${updatedUser.level}${extraMessage}`,
         data: { user: updatedUser },
       });
     } catch (err) {
@@ -190,6 +195,15 @@ class UserController {
           message: 'EXP Anda belum cukup untuk naik level',
         });
       }
+
+      if (err.message === 'MAX_LEVEL_REACHED') {
+        return res.status(400).json({
+          status: 'error',
+          message:
+            'Anda sudah mencapai level maksimal (Level 30). Terus pertahankan gaya hidup sehat Anda!',
+        });
+      }
+
       return UserController.handleServerError(
         err,
         res,

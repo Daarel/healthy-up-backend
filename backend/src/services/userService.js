@@ -13,6 +13,7 @@ class UserService {
         rewardPoints: true,
         streakCount: true,
         profilePicture: true,
+        badges: true,
       },
     });
 
@@ -74,8 +75,17 @@ class UserService {
   static async processLevelUp(userId) {
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { level: true, rankTitle: true, experiencePoints: true },
+      select: {
+        level: true,
+        rankTitle: true,
+        experiencePoints: true,
+        badges: true,
+      },
     });
+
+    if (currentUser.level >= 30) {
+      throw new Error('MAX_LEVEL_REACHED');
+    }
 
     if (!currentUser) throw new Error('USER_NOT_FOUND');
 
@@ -95,12 +105,25 @@ class UserService {
     else if (newLevel >= 10) newTitle = 'pejuang_sehat';
     else if (newLevel >= 5) newTitle = 'penggerak';
 
+    let updatedBadges = [...currentUser.badges];
+
+    if (newLevel === 10 && !updatedBadges.includes('LEVEL_10')) {
+      updatedBadges.push('LEVEL_10');
+    }
+    if (newLevel === 20 && !updatedBadges.includes('LEVEL_20')) {
+      updatedBadges.push('LEVEL_20');
+    }
+    if (newLevel === 30 && !updatedBadges.includes('LEVEL_30')) {
+      updatedBadges.push('LEVEL_30');
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
         level: newLevel,
         rankTitle: newTitle,
         experiencePoints: remainingExp,
+        badges: updatedBadges,
       },
       select: {
         id: true,
@@ -108,12 +131,12 @@ class UserService {
         level: true,
         rankTitle: true,
         experiencePoints: true,
+        badges: true,
       },
     });
 
     return updatedUser;
   }
-
 }
 
 export default UserService;
