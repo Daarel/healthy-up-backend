@@ -95,11 +95,11 @@ class UserController {
   static async updatePicture(req, res) {
     try {
       const userId = req.user.id;
-      const { imageUrl } = updateProfilePictureSchema.parse(req.body);
+      const { profilePicture } = updateProfilePictureSchema.parse(req.body);
 
       const updatedUser = await UserService.updateProfilePicture(
         userId,
-        imageUrl,
+        profilePicture,
       );
 
       return res.status(200).json({
