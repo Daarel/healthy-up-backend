@@ -28,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/health-profiles', healthProfileRoutes);
 app.use('/api/v1/users', userProfileRoutes);
-app.use('/api/v1/reward', rewardRoutes);
+app.use('/api/v1/rewards', rewardRoutes);
 
 // documentation
 const swaggerDocument = yaml.load(
