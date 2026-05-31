@@ -167,7 +167,7 @@ model WeightLog {
 model calorieLog {
   id       String   @id @default(uuid()) @db.Uuid
   userId   String   @db.Uuid
-  weight   Float
+  calories Int
   loggedAt DateTime @default(now()) @db.Timestamptz
 
   // Relations
