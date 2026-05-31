@@ -1,0 +1,42 @@
+import cors from 'cors';
+import express from 'express';
+import helmet from 'helmet';
+import path from 'path';
+import swaggerUi from 'swagger-ui-express';
+import yaml from 'yamljs';
+
+import authRoutes from './routes/authRoutes.js';
+import healthProfileRoutes from './routes/healthProfileRoutes.js';
+import userProfileRoutes from './routes/userRoutes.js';
+
+const app = express();
+
+// security and middleware
+app.use(helmet());
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true,
+  }),
+);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// api routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/health-profiles', healthProfileRoutes);
+app.use('/api/v1/users', userProfileRoutes);
+
+// documentation
+const swaggerDocument = yaml.load(
+  path.join(process.cwd(), 'docs', 'swagger.yaml'),
+);
+
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+export default app;
