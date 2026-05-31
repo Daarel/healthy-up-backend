@@ -113,6 +113,7 @@ class UserService {
 
     return updatedUser;
   }
+
 }
 
 export default UserService;

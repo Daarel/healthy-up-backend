@@ -9,4 +9,14 @@ const updateProfilePictureSchema = z.object({
   profilePicture: z.string().url('Format URL gambar tidak valid'), // deprecated need change
 });
 
-export { getAllUsersSchema, updateProfilePictureSchema };
+const deleteUserByAdminSchema = z.strictObject({
+  id: z
+    .string({ required_error: 'ID User wajib disertakan di URL' })
+    .uuid('Format ID User tidak valid'),
+});
+
+export {
+  deleteUserByAdminSchema,
+  getAllUsersSchema,
+  updateProfilePictureSchema,
+};

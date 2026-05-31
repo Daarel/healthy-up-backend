@@ -1,12 +1,13 @@
 import express from 'express';
 
-// Menggunakan import Class sesuai arsitektur yang baru
 import UserController from '../controllers/userController.js';
 import { adminOnly, protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.get('/all-users', protect, adminOnly, UserController.getAllUsers);
+
+router.delete('/:id', protect, adminOnly, UserController.deleteUserByAdmin);
 
 router.use('/user', protect);
 

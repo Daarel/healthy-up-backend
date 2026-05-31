@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  deleteUserByAdminSchema,
   getAllUsersSchema,
   updateProfilePictureSchema, // Pastikan ini sudah dibuat di schemas/userSchema.js
 } from '../schemas/userSchema.js';
@@ -61,6 +62,50 @@ class UserController {
         err,
         res,
         'Terjadi kesalahan saat menghapus akun',
+      );
+    }
+  }
+
+  /**
+   * * @desc    DELETE User by Admin
+   * ! @route   DELETE /api/v1/users/:id
+   * ? @access  Private (Admin Only)
+   */
+  static async deleteUserByAdmin(req, res) {
+    try {
+      const { id: targetUserId } = deleteUserByAdminSchema.parse(req.params);
+
+      if (req.user.id === targetUserId) {
+        return res.status(400).json({
+          status: 'error',
+          message:
+            'Anda tidak bisa menghapus akun Anda sendiri melalui endpoint ini. Gunakan rute penghapusan profil pribadi.',
+        });
+      }
+
+      await UserService.deleteUserProfile(targetUserId);
+
+      return res.status(200).json({
+        status: 'success',
+        message:
+          'Akun pengguna tersebut beserta seluruh datanya telah berhasil dihapus.',
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return UserController.handleZodError(err, res);
+      }
+
+      if (err.code === 'P2025') {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Pengguna yang ingin dihapus tidak ditemukan.',
+        });
+      }
+
+      return UserController.handleServerError(
+        err,
+        res,
+        'Terjadi kesalahan saat admin menghapus akun',
       );
     }
   }
