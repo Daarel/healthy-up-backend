@@ -31,6 +31,15 @@ app.use('/api/v1/users', userProfileRoutes);
 app.use('/api/v1/rewards', rewardRoutes);
 
 // documentation
+const swaggerOptions = {
+  swaggerOptions: {
+    supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+    docExpansion: 'list',
+    operationsSorter: 'alpha',
+  },
+  customSiteTitle: "HealthyUp API Documentation",
+};
+
 const swaggerDocument = yaml.load(
   path.join(process.cwd(), 'docs', 'swagger.yaml'),
 );
@@ -39,6 +48,6 @@ app.get('/', (req, res) => {
   res.redirect('/api-docs');
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
 
 export default app;
