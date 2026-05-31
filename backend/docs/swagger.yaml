@@ -13,7 +13,7 @@ tags:
   - name: Health Profiles
     description: Endpoint untuk manajemen profil kesehatan dan log berat badan
   - name: Users
-    description: Endpoint untuk manajemen data dan akun penggunas
+    description: Endpoint untuk manajemen data dan akun pengguna
 
 paths:
   /auth/register:

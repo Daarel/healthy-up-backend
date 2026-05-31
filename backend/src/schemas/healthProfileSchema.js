@@ -46,4 +46,8 @@ const createCalorieLogSchema = z.object({
   foodName: z.string().optional(),
 });
 
-export { createCalorieLogSchema, createHealthProfileSchema, createWeightLogsSchema };
+export {
+  createCalorieLogSchema,
+  createHealthProfileSchema,
+  createWeightLogsSchema,
+};
