@@ -35,4 +35,15 @@ const createWeightLogsSchema = z.strictObject({
     .max(200, { message: 'Berat badan maksimal 300 kg' }),
 });
 
-export { createHealthProfileSchema, createWeightLogsSchema };
+const createCalorieLogSchema = z.object({
+  calories: z
+    .number({
+      required_error: 'Jumlah kalori wajib diisi',
+      invalid_type_error: 'Kalori harus berupa angka',
+    })
+    .int('Kalori harus berupa bilangan bulat')
+    .positive('Kalori harus bernilai positif'),
+  foodName: z.string().optional(),
+});
+
+export { createCalorieLogSchema, createHealthProfileSchema, createWeightLogsSchema };

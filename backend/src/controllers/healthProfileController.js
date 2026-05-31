@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  createCalorieLogSchema,
   createHealthProfileSchema,
   createWeightLogsSchema,
 } from '../schemas/healthProfileSchema.js';
@@ -48,13 +49,13 @@ class HealthProfileController {
 
   /**
    * * @desc    Get User Calories Data
-   * ! @route   GET /api/v1/health-profiles/calories-summary
+   * ! @route   GET /api/v1/health-profiles/calories
    * ? @access  Private
    */
-  static async getCaloriesSummary(req, res) {
+  static async getCalorieLog(req, res) {
     try {
       const userId = req.user.id;
-      const summaryData = await HealthProfileService.getCaloriesSummary(userId);
+      const summaryData = await HealthProfileService.getCalorieLog(userId);
 
       return res.status(200).json({
         status: 'success',
@@ -65,6 +66,38 @@ class HealthProfileController {
         err,
         res,
         'Gagal mengambil data dashboard summary',
+      );
+    }
+  }
+
+  /**
+   * * @desc    Create User Calories Data
+   * ! @route   POST /api/v1/health-profiles/calories
+   * ? @access  Private
+   */
+  static async createCalorieLog(req, res) {
+    try {
+      const userId = req.user.id;
+      const { calories } = createCalorieLogSchema.parse(req.body);
+
+      const newCalorieLog = await HealthProfileService.createCalorieLog(
+        userId,
+        calories,
+      );
+
+      return res.status(201).json({
+        status: 'success',
+        message: 'Asupan kalori berhasil dicatat!',
+        data: { calorieLog: newCalorieLog },
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return HealthProfileController.handleZodError(err, res);
+      }
+      return HealthProfileController.handleServerError(
+        err,
+        res,
+        'Error creating calorie log',
       );
     }
   }

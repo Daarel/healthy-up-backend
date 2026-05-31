@@ -20,7 +20,7 @@ class HealthProfileService {
     return newProfile;
   }
 
-  static async getCaloriesSummary(userId) {
+  static async getCalorieLog(userId) {
     const now = new Date();
     const startOfToday = new Date(
       now.getFullYear(),
@@ -30,8 +30,13 @@ class HealthProfileService {
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfWeek.getDate() - 7);
 
-    const [dailyPhysical, weeklyPhysical, healthProfile] = await Promise.all([
-      // Kalori terbakar hari ini
+    const [
+      dailyBurned,
+      weeklyBurned,
+      dailyIntake,
+      weeklyIntake,
+      healthProfile,
+    ] = await Promise.all([
       prisma.mission.aggregate({
         _sum: { caloriesImpact: true },
         where: {
@@ -42,7 +47,6 @@ class HealthProfileService {
         },
       }),
 
-      // Kalori terbakar minggu ini
       prisma.mission.aggregate({
         _sum: { caloriesImpact: true },
         where: {
@@ -53,19 +57,50 @@ class HealthProfileService {
         },
       }),
 
+      prisma.calorieLog.aggregate({
+        _sum: { calories: true },
+        where: {
+          userId,
+          loggedAt: { gte: startOfToday },
+        },
+      }),
+
+      prisma.calorieLog.aggregate({
+        _sum: { calories: true },
+        where: {
+          userId,
+          loggedAt: { gte: startOfWeek },
+        },
+      }),
+
       prisma.healthProfile.findUnique({
         where: { userId },
         select: { goalWeight: true },
       }),
     ]);
 
-    const burnedToday = dailyPhysical._sum.caloriesImpact || 0;
-    const burnedWeekly = weeklyPhysical._sum.caloriesImpact || 0;
-
     return {
-      calories: { burnedToday, burnedWeekly },
+      caloriesBurned: {
+        today: dailyBurned._sum.caloriesImpact || 0,
+        weekly: weeklyBurned._sum.caloriesImpact || 0,
+      },
+      caloriesIntake: {
+        today: dailyIntake._sum.calories || 0,
+        weekly: weeklyIntake._sum.calories || 0,
+      },
       profile: healthProfile,
     };
+  }
+
+  static async createCalorieLog(userId, calories) {
+    const newCalorieLog = await prisma.calorieLog.create({
+      data: {
+        userId,
+        calories,
+      },
+    });
+
+    return newCalorieLog;
   }
 
   static async getWeightLogs(userId) {
