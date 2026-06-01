@@ -43,7 +43,6 @@ const createCalorieLogSchema = z.object({
     })
     .int('Kalori harus berupa bilangan bulat')
     .positive('Kalori harus bernilai positif'),
-  foodName: z.string().optional(),
 });
 
 const getWeightLogsQuerySchema = z.object({

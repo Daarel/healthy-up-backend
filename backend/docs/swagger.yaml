@@ -426,7 +426,7 @@ paths:
         '500':
           description: Terjadi kesalahan pada server
 
-  /health-profiles/calories:
+  /health-profiles/calories-logs:
     get:
       summary: Mendapatkan ringkasan kalori harian dan mingguan
       description: Menampilkan total kalori terbakar (dari misi) dan kalori masuk (dari asupan makanan) untuk hari ini dan minggu ini, beserta target berat badan pengguna.
@@ -494,9 +494,6 @@ paths:
                   type: integer
                   minimum: 1
                   example: 450
-                foodName:
-                  type: string
-                  example: 'Nasi Goreng Spesial'
       responses:
         '201':
           description: Asupan kalori berhasil dicatat
@@ -525,8 +522,6 @@ paths:
                             format: uuid
                           calories:
                             type: integer
-                          foodName:
-                            type: string
         '400':
           description: Validasi input gagal (misal kalori bukan bilangan bulat positif)
         '401':

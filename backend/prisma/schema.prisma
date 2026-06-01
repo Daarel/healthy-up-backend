@@ -92,7 +92,7 @@ model HealthProfile {
   userId     String   @unique @db.Uuid
   gender     Gender
   age        Int
-  factualBMI Decimal  @db.Decimal(5, 2)
+  factualBMI Decimal  @db.Decimal(5, 2) @default(0)
   weightKg   Decimal  @db.Decimal(5, 2)
   heightCm   Decimal  @db.Decimal(5, 2)
   goalWeight Decimal  @db.Decimal(5, 2)
