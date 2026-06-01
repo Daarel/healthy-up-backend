@@ -182,6 +182,34 @@ class HealthProfileController {
     }
   }
 
+  /**
+   * * @desc    Get User's Health Profile
+   * ! @route   GET /api/v1/health-profiles
+   * ? @access  Private
+   */
+  static async getMyProfile(req, res) {
+    try {
+      const userId = req.user.id;
+      const profile = await HealthProfileService.getMyProfile(userId);
+
+      return res.status(200).json({
+        status: 'success',
+        data: { profile },
+      });
+    } catch (err) {
+      if (err.message === 'PROFILE_NOT_FOUND') {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Profil kesehatan belum dibuat',
+        });
+      }
+      return res.status(500).json({
+        status: 'error',
+        message: 'Internal server error',
+      });
+    }
+  }
+
   // helper methods
   static handleZodError(err, res) {
     const validationIssues = err.issues || err.errors || [];

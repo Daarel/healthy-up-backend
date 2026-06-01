@@ -19,4 +19,6 @@ router
   .get(HealthProfileController.getWeightLog)
   .post(HealthProfileController.createWeightLog);
 
+router.get('/', protect, HealthProfileController.getMyProfile);
+
 export default router;

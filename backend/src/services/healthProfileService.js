@@ -160,6 +160,18 @@ class HealthProfileService {
 
     return { newWeightLog, updatedHealthProfile };
   }
+
+  static async getMyProfile(userId) {
+    const profile = await prisma.healthProfile.findUnique({
+      where: { userId: userId },
+    });
+
+    if (!profile) {
+      throw new Error('PROFILE_NOT_FOUND');
+    }
+
+    return profile;
+  }
 }
 
 export default HealthProfileService;
