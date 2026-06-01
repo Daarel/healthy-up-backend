@@ -406,8 +406,8 @@ paths:
         '500':
           description: Terjadi kesalahan internal pada server
     post:
-      summary: Membuat profil kesehatan pengguna
-      description: Endpoint untuk menyimpan data biometrik awal pengguna. Satu pengguna hanya dapat memiliki satu profil kesehatan.
+      summary: Membuat profil kesehatan pengguna baru
+      description: Menyimpan data metrik fisik pengguna (usia, gender, tinggi, berat badan, target) dan secara otomatis menghitung nilai Factual BMI di sisi server. Endpoint ini dirancang khusus untuk pendaftaran pertama kali dan hanya bisa diakses satu kali per pengguna.
       tags: [Health Profiles]
       security:
         - bearerAuth: []
@@ -422,33 +422,38 @@ paths:
                 gender:
                   type: string
                   enum: [male, female]
+                  description: Jenis kelamin pengguna
                   example: 'male'
                 age:
                   type: integer
                   minimum: 1
                   maximum: 120
+                  description: Usia pengguna dalam hitungan tahun
                   example: 21
                 heightCm:
                   type: number
                   format: float
                   minimum: 50
                   maximum: 250
-                  example: 175.5
+                  description: Tinggi badan pengguna dalam sentimeter
+                  example: 170.0
                 weightKg:
                   type: number
                   format: float
                   minimum: 10
                   maximum: 300
-                  example: 75.0
+                  description: Berat badan pengguna saat ini dalam kilogram
+                  example: 65.0
                 goalWeight:
                   type: number
                   format: float
                   minimum: 10
                   maximum: 300
-                  example: 65.0
+                  description: Target berat badan pengguna dalam kilogram
+                  example: 60.0
       responses:
         '201':
-          description: Profil kesehatan berhasil disimpan
+          description: Profil kesehatan berhasil disimpan dan BMI berhasil dihitung
           content:
             application/json:
               schema:
@@ -469,36 +474,55 @@ paths:
                           id:
                             type: string
                             format: uuid
+                            example: 'a1b2c3d4-e5f6-7890-1234-56789abcdef0'
                           userId:
                             type: string
                             format: uuid
                           gender:
                             type: string
+                            example: 'male'
                           age:
                             type: integer
-                          heightCm:
+                            example: 21
+                          factualBMI:
                             type: number
+                            format: float
+                            description: Hasil perhitungan otomatis dari backend
+                            example: 22.49
                           weightKg:
                             type: number
+                            format: float
+                            example: 65.0
+                          heightCm:
+                            type: number
+                            format: float
+                            example: 170.0
                           goalWeight:
                             type: number
+                            format: float
+                            example: 60.0
+                          updatedAt:
+                            type: string
+                            format: date-time
         '400':
-          description: Validasi gagal (Zod) atau profil sudah ada
+          description: Validasi Zod gagal atau profil sudah pernah dibuat
           content:
             application/json:
               examples:
-                ValidationError:
-                  value:
-                    status: fail
-                    errors: [{ field: 'age', message: 'Usia minimal 1 tahun' }]
-                ProfileExists:
+                ProfileAlreadyExists:
                   value:
                     status: error
                     message: 'Profil kesehatan untuk pengguna ini sudah ada'
+                ValidationError:
+                  value:
+                    status: fail
+                    errors:
+                      - field: weightKg
+                        message: 'Berat badan wajib diisi'
         '401':
-          description: Sesi tidak valid atau tidak ada token
+          description: Sesi tidak valid atau tidak ada token (Unauthorized)
         '500':
-          description: Terjadi kesalahan pada server
+          description: Terjadi kesalahan internal pada server
 
   /health-profiles/calories-logs:
     get:

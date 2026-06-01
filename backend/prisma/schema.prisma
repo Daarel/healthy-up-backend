@@ -92,7 +92,7 @@ model HealthProfile {
   userId     String   @unique @db.Uuid
   gender     Gender
   age        Int
-  factualBMI Decimal  @db.Decimal(5, 2) @default(0)
+  factualBMI Decimal  @default(0) @db.Decimal(5, 2)
   weightKg   Decimal  @db.Decimal(5, 2)
   heightCm   Decimal  @db.Decimal(5, 2)
   goalWeight Decimal  @db.Decimal(5, 2)
@@ -111,6 +111,7 @@ model Mission {
   title           String           @db.VarChar(100)
   description     String           @db.Text
   category        ActivityCategory
+  icon            String           @default("") @db.VarChar(50)
   difficultyScore Int
   caloriesImpact  Int
 

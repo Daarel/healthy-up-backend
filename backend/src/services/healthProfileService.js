@@ -10,9 +10,17 @@ class HealthProfileService {
       throw new Error('PROFILE_ALREADY_EXISTS');
     }
 
+    const heightInMeters = profileData.heightCm / 100;
+
+    const calculatedBMI =
+      profileData.weightKg / (heightInMeters * heightInMeters);
+
+    const factualBMI = parseFloat(calculatedBMI.toFixed(2));
+
     const newProfile = await prisma.healthProfile.create({
       data: {
         userId,
+        factualBMI,
         ...profileData,
       },
     });
