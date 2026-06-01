@@ -18,4 +18,6 @@ router.patch(
   MissionController.verifyMission,
 );
 
+router.get('/', protect, MissionController.getUserMissions);
+
 export default router;

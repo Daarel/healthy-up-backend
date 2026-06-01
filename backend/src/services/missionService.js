@@ -259,6 +259,35 @@ class MissionService {
       }
     });
   }
+
+  static async getUserMissions(userId, filterDate) {
+    let dateFilter = {};
+    
+    if (filterDate) {
+      const startOfDay = new Date(filterDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(filterDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      dateFilter = {
+        scheduledDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        }
+      };
+    }
+
+    const missions = await prisma.mission.findMany({
+      where: {
+        userId: userId,
+        ...dateFilter,
+      },
+      orderBy: { scheduledDate: 'asc' },
+    });
+
+    return missions;
+  }
 }
 
 export default MissionService;

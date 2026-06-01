@@ -234,6 +234,30 @@ class MissionController {
       );
     }
   }
+
+  /**
+   * * @desc    Get List of User Missions (Optional: filter by date)
+   * ! @route   GET /api/v1/missions
+   * ? @access  Private
+   */
+  static async getUserMissions(req, res) {
+    try {
+      const userId = req.user.id;
+      const { date } = req.query;
+
+      const missions = await MissionService.getUserMissions(userId, date);
+
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          total: missions.length,
+          missions,
+        },
+      });
+    } catch (err) {
+      return MissionController.handleServerError(err, res, 'Gagal mengambil daftar misi');
+    }
+  }
 }
 
 export default MissionController;
