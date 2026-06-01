@@ -1,7 +1,7 @@
 import express from 'express';
 
 import MissionController from '../controllers/missionController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { adminOnly, protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -10,5 +10,7 @@ router.get('/progress/weekly', protect, MissionController.getWeeklyProgress);
 
 router.get('/:id', protect, MissionController.getMissionById);
 router.patch('/:id/status', protect, MissionController.updateMissionStatus);
+
+router.patch('/:id/verify', protect, adminOnly, MissionController.verifyMission);
 
 export default router;

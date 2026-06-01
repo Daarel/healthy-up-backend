@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   missionIdParamSchema,
   updateMissionStatusSchema,
+  verifyMissionSchema,
 } from '../schemas/missionSchema.js';
 import MissionService from '../services/missionService.js';
 
@@ -177,6 +178,59 @@ class MissionController {
         err,
         res,
         'Gagal memperbarui status misi',
+      );
+    }
+  }
+
+  /**
+   * * @desc    Verify Mission Submission (Approve/Reject)
+   * ! @route   PATCH /api/v1/missions/:id/verify
+   * ? @access  Private (Admin Only)
+   */
+  static async verifyMission(req, res) {
+    try {
+      const { id } = missionIdParamSchema.parse(req.params);
+      const { verificationStatus, rejectionReason } = verifyMissionSchema.parse(
+        req.body,
+      );
+
+      const verifiedMission = await MissionService.verifyMission(
+        id,
+        verificationStatus,
+        rejectionReason,
+      );
+
+      const message =
+        verificationStatus === 'approved'
+          ? 'Bukti misi berhasil disetujui.'
+          : 'Misi berhasil ditolak dan reward telah ditarik kembali.';
+
+      return res.status(200).json({
+        status: 'success',
+        message,
+        data: { mission: verifiedMission },
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError)
+        return MissionController.handleZodError(err, res);
+
+      if (err.message === 'MISSION_NOT_FOUND') {
+        return res
+          .status(404)
+          .json({ status: 'error', message: 'Misi tidak ditemukan' });
+      }
+      if (err.message === 'MISSION_ALREADY_VERIFIED') {
+        return res.status(400).json({
+          status: 'error',
+          message:
+            'Misi ini sudah pernah diverifikasi (disetujui/ditolak) sebelumnya.',
+        });
+      }
+
+      return MissionController.handleServerError(
+        err,
+        res,
+        'Gagal memverifikasi misi',
       );
     }
   }

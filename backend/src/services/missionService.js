@@ -161,7 +161,12 @@ class MissionService {
     return mission;
   }
 
-  static async updateMissionStatus(missionId, userId, newStatus, proofImagePath) {
+  static async updateMissionStatus(
+    missionId,
+    userId,
+    newStatus,
+    proofImagePath,
+  ) {
     const mission = await prisma.mission.findFirst({
       where: { id: missionId, userId: userId },
     });
@@ -204,6 +209,49 @@ class MissionService {
     });
 
     return { mission: updatedMission, userStats: null };
+  }
+
+  static async verifyMission(missionId, verificationStatus, rejectionReason) {
+    const mission = await prisma.mission.findUnique({
+      where: { id: missionId },
+    });
+
+    if (!mission) throw new Error('MISSION_NOT_FOUND');
+    if (mission.verificationStatus !== 'pending') {
+      throw new Error('MISSION_ALREADY_VERIFIED');
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      if (verificationStatus === 'approved') {
+        const approvedMission = await tx.mission.update({
+          where: { id: missionId },
+          data: { verificationStatus: 'approved' },
+        });
+        return approvedMission;
+      }
+
+      if (verificationStatus === 'rejected') {
+        const rejectedMission = await tx.mission.update({
+          where: { id: missionId },
+          data: {
+            status: 'failed', // Gagalkan misi
+            verificationStatus: 'rejected',
+            rejectionReason: rejectionReason || null,
+          },
+        });
+
+        if (mission.status === 'completed') {
+          await tx.user.update({
+            where: { id: mission.userId },
+            data: {
+              experiencePoints: { decrement: mission.xpReward },
+              rewardPoints: { decrement: mission.pointsReward },
+            },
+          });
+        }
+        return rejectedMission;
+      }
+    });
   }
 }
 
