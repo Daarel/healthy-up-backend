@@ -7,6 +7,7 @@ import yaml from 'yamljs';
 
 import authRoutes from './routes/authRoutes.js';
 import healthProfileRoutes from './routes/healthProfileRoutes.js';
+import missionRoutes from './routes/missionRoutes.js';
 import rewardRoutes from './routes/rewardRoutes.js';
 import userProfileRoutes from './routes/userRoutes.js';
 
@@ -29,6 +30,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/health-profiles', healthProfileRoutes);
 app.use('/api/v1/users', userProfileRoutes);
 app.use('/api/v1/rewards', rewardRoutes);
+app.use('/api/v1/missions', missionRoutes);
 
 // documentation
 const swaggerOptions = {
@@ -37,7 +39,7 @@ const swaggerOptions = {
     docExpansion: 'list',
     operationsSorter: 'alpha',
   },
-  customSiteTitle: "HealthyUp API Documentation",
+  customSiteTitle: 'HealthyUp API Documentation',
 };
 
 const swaggerDocument = yaml.load(
@@ -48,6 +50,10 @@ app.get('/', (req, res) => {
   res.redirect('/api-docs');
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, swaggerOptions),
+);
 
 export default app;
