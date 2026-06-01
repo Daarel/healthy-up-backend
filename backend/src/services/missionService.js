@@ -125,15 +125,21 @@ class MissionService {
         });
       });
 
-      const [, createdMissions] = await prisma.$transaction([
-        prisma.healthProfile.update({
-          where: { userId: userId },
-          data: { factualBMI: ai_analysis.factual_bmi },
-        }),
-        prisma.mission.createMany({
-          data: newMissions,
-        }),
-      ]);
+      const [, createdMissions] = await prisma.$transaction(
+        [
+          prisma.healthProfile.update({
+            where: { userId: userId },
+            data: { factualBMI: ai_analysis.factual_bmi },
+          }),
+          prisma.mission.createMany({
+            data: newMissions,
+          }),
+        ],
+        {
+          maxWait: 15000,
+          timeout: 30000,
+        },
+      );
 
       return {
         ai_analysis,

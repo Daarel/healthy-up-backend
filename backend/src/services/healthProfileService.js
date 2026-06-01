@@ -116,17 +116,17 @@ class HealthProfileService {
     const rawLogs = await prisma.weightLog.findMany({
       where: {
         userId: userId,
-        createdAt: {
+        loggedAt: {
           gte: startDate,
           lte: endDate,
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { loggedAt: 'asc' },
     });
 
     const logMap = {};
     rawLogs.forEach((log) => {
-      const dateString = log.createdAt.toISOString().split('T')[0];
+      const dateString = log.loggedAt.toISOString().split('T')[0];
       logMap[dateString] = log.weight;
     });
 
@@ -154,7 +154,7 @@ class HealthProfileService {
       }),
       prisma.healthProfile.update({
         where: { userId },
-        data: { weight },
+        data: { weightKg: weight },
       }),
     ]);
 
