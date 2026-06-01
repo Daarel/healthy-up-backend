@@ -8,4 +8,7 @@ const router = express.Router();
 router.post('/generate', protect, MissionController.generateMissions);
 router.get('/progress/weekly', protect, MissionController.getWeeklyProgress);
 
+router.get('/:id', protect, MissionController.getMissionById);
+router.patch('/:id/status', protect, MissionController.updateMissionStatus);
+
 export default router;

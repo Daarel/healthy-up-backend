@@ -148,6 +148,63 @@ class MissionService {
       throw new Error('AI_GENERATION_FAILED', { cause: error });
     }
   }
+
+  static async getMissionById(missionId, userId) {
+    const mission = await prisma.mission.findFirst({
+      where: {
+        id: missionId,
+        userId: userId,
+      },
+    });
+
+    if (!mission) throw new Error('MISSION_NOT_FOUND');
+    return mission;
+  }
+
+  static async updateMissionStatus(missionId, userId, newStatus, proofImagePath) {
+    const mission = await prisma.mission.findFirst({
+      where: { id: missionId, userId: userId },
+    });
+
+    if (!mission) throw new Error('MISSION_NOT_FOUND');
+
+    if (mission.status === 'completed' && newStatus === 'completed') {
+      throw new Error('MISSION_ALREADY_COMPLETED');
+    }
+
+    if (newStatus === 'completed') {
+      const [updatedMission, updatedUser] = await prisma.$transaction([
+        prisma.mission.update({
+          where: { id: missionId },
+          data: {
+            status: 'completed',
+            completedAt: new Date(),
+            proofImagePath: proofImagePath || mission.proofImagePath,
+          },
+        }),
+        prisma.user.update({
+          where: { id: userId },
+          data: {
+            experiencePoints: { increment: mission.xpReward },
+            rewardPoints: { increment: mission.pointsReward },
+          },
+          select: { experiencePoints: true, rewardPoints: true },
+        }),
+      ]);
+
+      return { mission: updatedMission, userStats: updatedUser };
+    }
+
+    const updatedMission = await prisma.mission.update({
+      where: { id: missionId },
+      data: {
+        status: newStatus,
+        proofImagePath: proofImagePath || mission.proofImagePath,
+      },
+    });
+
+    return { mission: updatedMission, userStats: null };
+  }
 }
 
 export default MissionService;
