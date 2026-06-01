@@ -255,7 +255,11 @@ class MissionController {
         },
       });
     } catch (err) {
-      return MissionController.handleServerError(err, res, 'Gagal mengambil daftar misi');
+      return MissionController.handleServerError(
+        err,
+        res,
+        'Gagal mengambil daftar misi',
+      );
     }
   }
 }

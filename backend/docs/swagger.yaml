@@ -357,14 +357,14 @@ paths:
                           id:
                             type: string
                             format: uuid
-                            example: "987fcdeb-51a2-43d7-9012-34567890abcd"
+                            example: '987fcdeb-51a2-43d7-9012-34567890abcd'
                           userId:
                             type: string
                             format: uuid
                           gender:
                             type: string
                             enum: [male, female]
-                            example: "male"
+                            example: 'male'
                           age:
                             type: integer
                             example: 21
@@ -387,7 +387,7 @@ paths:
                           updatedAt:
                             type: string
                             format: date-time
-                            example: "2026-06-01T10:30:00.000Z"
+                            example: '2026-06-01T10:30:00.000Z'
         '401':
           description: Sesi tidak valid atau tidak ada token (Unauthorized)
         '404':
