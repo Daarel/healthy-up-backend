@@ -5,7 +5,11 @@ import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, HealthProfileController.createProfile);
+router.use('/', protect);
+router
+  .route('/')
+  .get(HealthProfileController.getMyProfile)
+  .post(HealthProfileController.createProfile);
 
 router.use('/calories-logs', protect);
 router
@@ -18,7 +22,5 @@ router
   .route('/weight-logs')
   .get(HealthProfileController.getWeightLog)
   .post(HealthProfileController.createWeightLog);
-
-router.get('/', protect, HealthProfileController.getMyProfile);
 
 export default router;
