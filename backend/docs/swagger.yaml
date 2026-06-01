@@ -1415,3 +1415,331 @@ paths:
           description: Katalog reward tidak ditemukan
         '500':
           description: Gagal mengubah status reward
+  /missions/generate:
+    post:
+      summary: Membuat misi mingguan menggunakan Generative AI
+      description: Membaca profil kesehatan pengguna (BMI, berat badan, tujuan) lalu mengirimkan data tersebut ke model AI untuk menghasilkan jadwal misi harian (Olahraga, Nutrisi, Mental) selama 7 hari ke depan. Nilai factualBMI di profil pengguna juga akan diperbarui.
+      tags: [Missions]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Misi selama 7 hari berhasil dibuat oleh AI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Misi selama 7 hari berhasil dibuat oleh AI!
+                  data:
+                    type: object
+                    properties:
+                      ai_analysis:
+                        type: object
+                      total_quests_generated:
+                        type: integer
+                        example: 14
+                      gamification_data:
+                        type: object
+        '404':
+          description: Profil kesehatan belum diisi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Profil kesehatan belum diisi. Harap lengkapi profil terlebih dahulu.
+        '401':
+          description: Sesi tidak valid atau tidak ada token
+        '502':
+          description: Gagal menghubungi server AI Hugging Face
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Gagal menghubungi server AI untuk membuat misi. Coba beberapa saat lagi.
+        '500':
+          description: Terjadi kesalahan pada server
+
+  /missions/progress/weekly:
+    get:
+      summary: Mendapatkan persentase progres misi minggu ini
+      description: Menghitung total misi dan misi yang berstatus 'completed' dalam rentang waktu hari Senin hingga Minggu pada minggu yang sedang berjalan. Digunakan untuk merender grafik bundar (circular progress) di dashboard.
+      tags: [Missions]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Berhasil mengambil data progres misi mingguan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      percentage:
+                        type: integer
+                        example: 75
+                      completedMissions:
+                        type: integer
+                        example: 3
+                      totalMissions:
+                        type: integer
+                        example: 4
+                      period:
+                        type: object
+                        properties:
+                          start:
+                            type: string
+                            format: date-time
+                            example: '2026-06-01T00:00:00.000Z'
+                          end:
+                            type: string
+                            format: date-time
+                            example: '2026-06-07T23:59:59.999Z'
+        '401':
+          description: Sesi tidak valid atau tidak ada token
+        '500':
+          description: Gagal mengambil progres misi mingguan
+
+  /missions/{id}:
+    get:
+      summary: Mendapatkan detail informasi misi spesifik
+      description: Mengambil data lengkap sebuah misi berdasarkan ID. Sistem akan memastikan misi tersebut benar-benar milik pengguna yang sedang login.
+      tags: [Missions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID dari misi yang ingin dilihat
+      responses:
+        '200':
+          description: Berhasil mengambil detail misi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      mission:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          title:
+                            type: string
+                            example: 'Meditasi 15 menit'
+                          description:
+                            type: string
+                          category:
+                            type: string
+                            example: 'mental'
+                          status:
+                            type: string
+                            example: 'assigned'
+                          xpReward:
+                            type: integer
+                            example: 75
+                          pointsReward:
+                            type: integer
+                            example: 30
+        '400':
+          description: Format UUID tidak valid (Zod Error)
+        '401':
+          description: Sesi tidak valid atau tidak ada token
+        '404':
+          description: Misi tidak ditemukan atau bukan milik pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Misi tidak ditemukan
+        '500':
+          description: Gagal mengambil detail misi
+
+  /missions/{id}/status:
+    patch:
+      summary: Memperbarui status misi (Menyelesaikan misi)
+      description: Mengubah status misi menjadi in_progress, completed, atau failed. Jika status diubah menjadi completed, sistem akan secara otomatis menyuntikkan XP dan Poin ke akun pengguna.
+      tags: [Missions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID dari misi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [in_progress, completed, failed]
+                  example: 'completed'
+                proofImagePath:
+                  type: string
+                  format: uri
+                  description: URL gambar bukti penyelesaian misi (opsional)
+                  example: 'https://example.com/bukti.jpg'
+      responses:
+        '200':
+          description: Status misi berhasil diperbarui dan XP/Poin ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Misi selesai! XP dan Poin telah ditambahkan ke akun Anda.
+                  data:
+                    type: object
+                    properties:
+                      mission:
+                        type: object
+                      userStats:
+                        type: object
+                        properties:
+                          experiencePoints:
+                            type: integer
+                          rewardPoints:
+                            type: integer
+        '400':
+          description: Validasi Zod gagal atau mencoba mengklaim ulang misi
+          content:
+            application/json:
+              examples:
+                AlreadyCompleted:
+                  value:
+                    status: error
+                    message: 'Misi ini sudah diselesaikan sebelumnya'
+                ValidationError:
+                  value:
+                    status: fail
+                    errors:
+                      - field: status
+                        message: "Status hanya boleh 'in_progress', 'completed', atau 'failed'"
+        '401':
+          description: Sesi tidak valid atau tidak ada token
+        '404':
+          description: Misi tidak ditemukan
+        '500':
+          description: Gagal memperbarui status misi
+
+  /missions/{id}/verify:
+    patch:
+      summary: Memverifikasi bukti misi (Approve / Reject) (Admin Only)
+      description: Endpoint khusus Admin untuk menyetujui atau menolak bukti penyelesaian misi. Jika ditolak (rejected), sistem akan membatalkan status selesai dan menarik kembali XP serta Poin yang sudah diberikan ke pengguna.
+      tags: [Missions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID dari misi yang akan diverifikasi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verificationStatus]
+              properties:
+                verificationStatus:
+                  type: string
+                  enum: [approved, rejected]
+                  example: 'rejected'
+                rejectionReason:
+                  type: string
+                  maxLength: 500
+                  description: Wajib diisi jika status ditolak
+                  example: 'Bukti foto tidak jelas. Misi dibatalkan.'
+      responses:
+        '200':
+          description: Verifikasi berhasil diproses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Misi berhasil ditolak dan reward telah ditarik kembali.
+                  data:
+                    type: object
+                    properties:
+                      mission:
+                        type: object
+        '400':
+          description: Validasi Zod gagal atau misi sudah pernah diverifikasi
+          content:
+            application/json:
+              examples:
+                AlreadyVerified:
+                  value:
+                    status: error
+                    message: 'Misi ini sudah pernah diverifikasi (disetujui/ditolak) sebelumnya.'
+        '401':
+          description: Sesi tidak valid atau tidak ada token
+        '403':
+          description: Akses ditolak (Hanya Admin yang dapat memverifikasi)
+        '404':
+          description: Misi tidak ditemukan
+        '500':
+          description: Gagal memverifikasi misi
