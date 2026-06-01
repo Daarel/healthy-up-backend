@@ -8,7 +8,8 @@ const missionIdParamSchema = z.strictObject({
 
 const updateMissionStatusSchema = z.strictObject({
   status: z.enum(['in_progress', 'completed', 'failed'], {
-    invalid_type_error: "Status hanya boleh 'in_progress', 'completed', atau 'failed'",
+    invalid_type_error:
+      "Status hanya boleh 'in_progress', 'completed', atau 'failed'",
     required_error: 'Status misi wajib diisi',
   }),
   proofImagePath: z.string().url('Format URL gambar tidak valid').optional(),
@@ -26,4 +27,4 @@ const verifyMissionSchema = z.strictObject({
     .optional(),
 });
 
-export { missionIdParamSchema, updateMissionStatusSchema,verifyMissionSchema }
+export { missionIdParamSchema, updateMissionStatusSchema, verifyMissionSchema };

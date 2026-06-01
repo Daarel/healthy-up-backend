@@ -11,6 +11,11 @@ router.get('/progress/weekly', protect, MissionController.getWeeklyProgress);
 router.get('/:id', protect, MissionController.getMissionById);
 router.patch('/:id/status', protect, MissionController.updateMissionStatus);
 
-router.patch('/:id/verify', protect, adminOnly, MissionController.verifyMission);
+router.patch(
+  '/:id/verify',
+  protect,
+  adminOnly,
+  MissionController.verifyMission,
+);
 
 export default router;
