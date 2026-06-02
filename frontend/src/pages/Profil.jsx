@@ -46,7 +46,7 @@ export default function Profile() {
     joinDate: "",
     level: 1,
     title: "Pemula",
-    avatar: "/profile/avatar.png",
+    avatar: "",
     streak: 0,
     experiencePoints: 0,
     rewardPoints: 0,
