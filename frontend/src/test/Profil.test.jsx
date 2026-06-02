@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Profile from '../pages/Profil';
 import * as AuthContextModule from '../context/AuthContext';
+import { authApi, userApi } from '../lib/api';
 
 vi.mock('../components/ui/streak', () => ({ default: ({ count }) => <span>{count} Streak</span> }));
 vi.mock('../lib/api', () => ({
@@ -10,7 +11,41 @@ vi.mock('../lib/api', () => ({
     logout: vi.fn().mockResolvedValue({}),
   },
   userApi: {
-    getMe: vi.fn().mockRejectedValue(new Error('no session')),
+    getMe: vi.fn().mockResolvedValue({
+      data: {
+        user: {
+          username: 'ghifari',
+          email: 'ghifari@email.com',
+          rankTitle: 'pemula',
+          level: 1,
+          experiencePoints: 120,
+          rewardPoints: 40,
+          streakCount: 3,
+          profilePicture: '',
+          badges: [],
+        },
+      },
+    }),
+    levelUp: vi.fn().mockResolvedValue({
+      data: {
+        user: {
+          username: 'ghifari',
+          rankTitle: 'penggerak',
+          level: 2,
+          experiencePoints: 20,
+          badges: [],
+        },
+      },
+    }),
+    updatePicture: vi.fn().mockResolvedValue({
+      data: {
+        user: {
+          username: 'ghifari',
+          profilePicture: 'https://example.com/avatar.png',
+        },
+      },
+    }),
+    deleteMe: vi.fn().mockResolvedValue({ status: 'success' }),
   },
 }));
 
@@ -28,6 +63,12 @@ const renderProfil = () => {
 };
 
 describe('Profil Page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(window, 'prompt').mockReturnValue('https://example.com/avatar.png');
+  });
+
   it('renders tanpa error', () => {
     renderProfil();
   });
@@ -36,6 +77,26 @@ describe('Profil Page', () => {
     renderProfil();
     expect(screen.getByText(/Level 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Pemula/i)).toBeInTheDocument();
+  });
+
+  it('memuat data profil dari backend', async () => {
+    renderProfil();
+    await waitFor(() => expect(screen.getByText('ghifari')).toBeInTheDocument());
+    expect(screen.getByText('ghifari@email.com')).toBeInTheDocument();
+    expect(screen.getByText(/120 EXP/i)).toBeInTheDocument();
+    expect(screen.getByText(/40 poin hadiah/i)).toBeInTheDocument();
+  });
+
+  it('tombol Naik Level memanggil API level-up', async () => {
+    renderProfil();
+    fireEvent.click(screen.getByRole('button', { name: /Naik Level/i }));
+    await waitFor(() => expect(userApi.levelUp).toHaveBeenCalled());
+  });
+
+  it('tombol edit foto profil memanggil API update picture', async () => {
+    renderProfil();
+    fireEvent.click(screen.getByRole('button', { name: /Edit foto profil/i }));
+    await waitFor(() => expect(userApi.updatePicture).toHaveBeenCalledWith('https://example.com/avatar.png'));
   });
 
   it('menampilkan banner Catat Berat Badan Minggu Ini', () => {
@@ -168,18 +229,13 @@ describe('Profil Page', () => {
     expect(screen.getByText(/Belum cukup data untuk menampilkan grafik/i)).toBeInTheDocument();
   });
 
-  it('menampilkan data berat badan (Berat Awal, Sekarang, Target)', () => {
+  it('menampilkan data berat badan tanpa target default', () => {
     renderProfil();
     expect(screen.getByText('Berat Awal')).toBeInTheDocument();
     expect(screen.getByText('Sekarang')).toBeInTheDocument();
-    expect(screen.getByText('Target')).toBeInTheDocument();
-    // Default target 65 kg — mungkin muncul lebih dari sekali
-    expect(screen.getAllByText('65 kg').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('menampilkan kartu progress sisa menuju target', () => {
-    renderProfil();
-    expect(screen.getByText('Sisa menuju target')).toBeInTheDocument();
+    expect(screen.queryByText('Target')).not.toBeInTheDocument();
+    expect(screen.queryByText('65 kg')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sisa menuju target')).not.toBeInTheDocument();
   });
 
   // ─── Stats & Settings ─────────────────────────────────────────────────────────
@@ -216,14 +272,22 @@ describe('Profil Page', () => {
     expect(keluarItems.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('tombol Keluar di pengaturan akun memanggil API logout', () => {
+    renderProfil();
+    const keluarItems = screen.getAllByText('Keluar');
+    fireEvent.click(keluarItems[keluarItems.length - 1]);
+    expect(authApi.logout).toHaveBeenCalled();
+  });
+
   it('menampilkan tombol Hapus Akun', () => {
     renderProfil();
     expect(screen.getByText('Hapus Akun')).toBeInTheDocument();
   });
 
-  it('tombol Hapus Akun dapat diklik', () => {
+  it('tombol Hapus Akun memanggil API delete profile', async () => {
     renderProfil();
     fireEvent.click(screen.getByText('Hapus Akun'));
+    await waitFor(() => expect(userApi.deleteMe).toHaveBeenCalled());
   });
 
   it('setelah simpan berat, data baru muncul di riwayat', () => {

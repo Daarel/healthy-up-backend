@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, KeyRound, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, KeyRound, CheckCircle2, Loader2 } from "lucide-react";
 import Logo from "../components/ui/logo";
+import { authApi } from "../lib/api";
 
 const RULES = [
   { id: "length",  label: "Minimal 8 karakter",          test: (v) => v.length >= 8 },
@@ -16,6 +17,8 @@ export default function ResetPasswordBaru() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const passedRules = RULES.filter((r) => r.test(password));
@@ -39,15 +42,31 @@ export default function ResetPasswordBaru() {
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setErrors({});
-    // TODO: panggil API reset password
-    sessionStorage.removeItem("reset_email");
-    sessionStorage.removeItem("reset_otp_verified");
-    setSuccess(true);
+    setServerError("");
+
+    const email = sessionStorage.getItem("reset_email")?.trim();
+    const otp = sessionStorage.getItem("reset_otp")?.trim();
+    if (!email || !otp) {
+      setServerError("Sesi reset password tidak valid. Silakan minta kode OTP ulang.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await authApi.resetPassword(email, otp, password, confirm);
+      sessionStorage.removeItem("reset_email");
+      sessionStorage.removeItem("reset_otp");
+      setSuccess(true);
+    } catch (err) {
+      setServerError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (success) {
@@ -95,6 +114,12 @@ export default function ResetPasswordBaru() {
           </p>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            {serverError && (
+              <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 font-jakarta">
+                {serverError}
+              </div>
+            )}
+
             {/* Password Baru */}
             <div>
               <label
@@ -232,9 +257,17 @@ export default function ResetPasswordBaru() {
 
             <button
               type="submit"
-              className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend"
+              disabled={isLoading}
+              className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Simpan Password Baru
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Password Baru"
+              )}
             </button>
           </form>
         </div>

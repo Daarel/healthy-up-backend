@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { maskEmail } from "../lib/utils";
+import { authApi } from "../lib/api";
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60; // detik
@@ -13,6 +14,7 @@ export default function ResetPasswordOtp() {
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
+  const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef([]);
 
   // Hitung mundur resend
@@ -57,19 +59,27 @@ export default function ResetPasswordOtp() {
       setError("Masukkan 6 digit kode OTP.");
       return;
     }
-    // TODO: verifikasi OTP ke API
-    // Untuk sekarang, kode apapun diterima
-    sessionStorage.setItem("reset_otp_verified", "true");
+    sessionStorage.setItem("reset_otp", code);
     navigate("/reset-password/baru");
   };
 
-  const handleResend = () => {
-    if (cooldown > 0) return;
-    setCooldown(RESEND_COOLDOWN);
-    setOtp(Array(OTP_LENGTH).fill(""));
+  const handleResend = async () => {
+    if (cooldown > 0 || isResending) return;
+
+    setIsResending(true);
     setError("");
-    inputRefs.current[0]?.focus();
-    // TODO: panggil API kirim ulang OTP
+
+    try {
+      await authApi.resendOtp(email);
+      setCooldown(RESEND_COOLDOWN);
+      setOtp(Array(OTP_LENGTH).fill(""));
+      sessionStorage.removeItem("reset_otp");
+      inputRefs.current[0]?.focus();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsResending(false);
+    }
   };
 
   return (
@@ -150,9 +160,10 @@ export default function ResetPasswordOtp() {
               <button
                 type="button"
                 onClick={handleResend}
-                className="text-[#006e2f] font-semibold hover:underline"
+                disabled={isResending}
+                className="text-[#006e2f] font-semibold hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Kirim ulang
+                {isResending ? "Mengirim..." : "Kirim ulang"}
               </button>
             )}
           </p>

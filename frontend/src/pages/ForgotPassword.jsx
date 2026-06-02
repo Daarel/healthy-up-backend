@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { authApi } from "../lib/api";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const validate = () => {
     if (!email.trim()) return "Email tidak boleh kosong.";
@@ -14,14 +16,24 @@ export default function ForgotPassword() {
     return "";
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const err = validate();
     if (err) { setError(err); return; }
     setError("");
-    // TODO: panggil API kirim OTP ke email
-    sessionStorage.setItem("reset_email", email);
-    navigate("/reset-password/otp");
+    setIsLoading(true);
+
+    try {
+      const normalizedEmail = email.trim();
+      await authApi.forgotPassword(normalizedEmail);
+      sessionStorage.setItem("reset_email", normalizedEmail);
+      sessionStorage.removeItem("reset_otp");
+      navigate("/reset-password/otp");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -76,10 +88,20 @@ export default function ForgotPassword() {
 
             <button
               type="submit"
-              className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full bg-[#006e2f] text-white font-semibold py-4 rounded-xl hover:bg-[#005823] transition-colors font-lexend flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Kirim Kode OTP
-              <ArrowRight className="w-5 h-5" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Mengirim...
+                </>
+              ) : (
+                <>
+                  Kirim Kode OTP
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </button>
           </form>
         </div>

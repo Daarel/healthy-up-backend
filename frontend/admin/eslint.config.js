@@ -14,8 +14,26 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
+      ecmaVersion: 2020,
       globals: globals.browser,
-      parserOptions: { ecmaFeatures: { jsx: true } },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^_|^[A-Z]',
+        destructuredArrayIgnorePattern: '^[A-Z_]',
+      }],
+    },
+  },
+  {
+    files: ['src/components/ui/button.jsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])

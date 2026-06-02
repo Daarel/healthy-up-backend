@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ShieldCheck, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { adminApi } from "@/lib/api";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -18,19 +19,10 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // TODO: ganti dengan real API call
-      // const res = await adminApi.login(email, password);
-      // localStorage.setItem("admin_token", res.data.token);
-
-      // Simulasi sementara
-      if (email === "admin@healthyup.com" && password === "admin123") {
-        localStorage.setItem("admin_token", "dummy_admin_token");
-        navigate("/admin/users");
-      } else {
-        setError("Email atau password salah.");
-      }
+      await adminApi.login(email, password);
+      navigate("/admin/users");
     } catch (err) {
-      setError(err.message || "Terjadi kesalahan.");
+      setError(err.message || "Email atau password salah.");
     } finally {
       setIsLoading(false);
     }

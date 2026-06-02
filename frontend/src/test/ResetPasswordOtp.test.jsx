@@ -75,7 +75,7 @@ describe('ResetPasswordOtp Page', () => {
     renderPage();
     fillOtp('123456');
     fireEvent.click(screen.getByRole('button', { name: /Verifikasi/i }));
-    expect(sessionStorage.getItem('reset_otp_verified')).toBe('true');
+    expect(sessionStorage.getItem('reset_otp')).toBe('123456');
   });
 
   it('tombol Kembali dapat diklik', () => {
