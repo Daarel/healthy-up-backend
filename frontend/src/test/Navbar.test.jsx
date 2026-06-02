@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import * as AuthContextModule from '../context/AuthContext';
+import { authApi } from '../lib/api';
 
 // Mock Logo component since it's an SVG/image component
 vi.mock('../components/ui/logo', () => ({ default: () => <span>HealthyUp</span> }));
@@ -84,8 +85,9 @@ describe('Navbar Component', () => {
     expect(nav).toBeInTheDocument();
   });
 
-  it('tombol Keluar dapat diklik', () => {
+  it('tombol Keluar memanggil API logout', async () => {
     renderNavbar();
     fireEvent.click(screen.getByText('Keluar'));
+    expect(authApi.logout).toHaveBeenCalled();
   });
 });

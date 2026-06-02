@@ -3,14 +3,6 @@ import { CheckCircle, XCircle, Loader2, ImageOff, ChevronLeft, ChevronRight, X }
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-// Helper — deteksi apakah URL adalah video berdasarkan ekstensi atau tipe
-const isVideoUrl = (url) => {
-  if (!url) return false;
-  const videoExts = [".mp4", ".webm", ".ogg", ".mov", ".avi"];
-  const lower = url.toLowerCase().split("?")[0]; // abaikan query string
-  return videoExts.some((ext) => lower.endsWith(ext));
-};
-
 // Data dummy — nanti diganti dengan fetch ke API
 // proofMedia: array of { url: string, type: "image" | "video" }
 const DUMMY_MISSIONS = [

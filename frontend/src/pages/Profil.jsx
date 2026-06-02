@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Edit2,
@@ -17,7 +17,8 @@ import {
 import Navbar from "../components/Navbar";
 import WeightInputModal from "../components/WeightInputModal";
 import Streak from "../components/ui/streak";
-import { authApi } from "../lib/api";
+import { authApi, userApi } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 // ─── Konstanta ────────────────────────────────────────────────────────────────
 const MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
@@ -25,6 +26,10 @@ const fmtDate = (iso) => {
   const d = new Date(iso);
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 };
+const titleCase = (value) =>
+  String(value || "Pemula")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
 // SVG chart dimensions
 const SVG_W = 600;
@@ -33,22 +38,24 @@ const PAD_X = 20;
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
-  // ─── User profile state (TODO: fetch GET /api/users/me) ───────────────────
-  const [user] = useState({
-    name:     "",
+  const [user, setProfileUser] = useState({
+    name: "",
+    email: "",
     joinDate: "",
-    level:    1,
-    title:    "Pemula",
-    avatar:   "/public/profile/avatar.png",
-    streak:   0,
+    level: 1,
+    title: "Pemula",
+    avatar: "/profile/avatar.png",
+    streak: 0,
+    experiencePoints: 0,
+    rewardPoints: 0,
+    badges: [],
   });
+  const [profileError, setProfileError] = useState("");
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-  // ─── Health stats state (TODO: fetch GET /api/users/me/stats) ─────────────
-  const [stats] = useState({
-    caloriesBurnedThisWeek: 0, // kkal terbakar minggu ini
-    targetWeight:           65.0,
-  });
+  const caloriesBurnedThisWeek = 0;
 
   // ─── Weight log state (TODO: fetch GET /api/weight-logs) ──────────────────
   // Struktur tiap item: { id, date (ISO string), weight (number), note (string) }
@@ -59,6 +66,48 @@ export default function Profile() {
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showSuccess,    setShowSuccess]    = useState(false);
   const [isLoggingOut,   setIsLoggingOut]   = useState(false);
+  const [isDeleting,     setIsDeleting]     = useState(false);
+  const [isLevelingUp,   setIsLevelingUp]   = useState(false);
+  const [isUpdatingPicture, setIsUpdatingPicture] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadProfile = async () => {
+      setIsProfileLoading(true);
+      setProfileError("");
+      try {
+        const res = await userApi.getMe();
+        const backendUser = res.data.user;
+        if (ignore) return;
+
+        setProfileUser({
+          name: backendUser.username || "",
+          email: backendUser.email || "",
+          joinDate: "",
+          level: backendUser.level ?? 1,
+          title: titleCase(backendUser.rankTitle),
+          avatar: backendUser.profilePicture || "/profile/avatar.png",
+          streak: backendUser.streakCount ?? 0,
+          experiencePoints: backendUser.experiencePoints ?? 0,
+          rewardPoints: backendUser.rewardPoints ?? 0,
+          badges: backendUser.badges ?? [],
+        });
+        setUser({
+          username: backendUser.username,
+          email: backendUser.email,
+        });
+      } catch (err) {
+        if (ignore) return;
+        setProfileError(err.message || "Gagal memuat profil.");
+      } finally {
+        if (!ignore) setIsProfileLoading(false);
+      }
+    };
+
+    loadProfile();
+    return () => { ignore = true; };
+  }, [setUser]);
 
   // ─── Derived values ───────────────────────────────────────────────────────
   const hasLog        = weightLog.length > 0;
@@ -67,14 +116,6 @@ export default function Profile() {
   const prevEntry     = weightLog.length >= 2 ? weightLog[weightLog.length - 2] : null;
   const currentWeight = latestEntry?.weight ?? 0;
   const weightDiff    = prevEntry ? +(currentWeight - prevEntry.weight).toFixed(1) : 0;
-  const { targetWeight, caloriesBurnedThisWeek } = stats;
-
-  // Progress menuju target (0–100%)
-  const weightProgress = firstEntry && firstEntry.weight !== targetWeight
-    ? Math.min(100, Math.max(0,
-        ((firstEntry.weight - currentWeight) / (firstEntry.weight - targetWeight)) * 100
-      ))
-    : 0;
 
   // ─── Chart helpers ────────────────────────────────────────────────────────
   const chartEntries = weightLog.slice(-7);
@@ -101,7 +142,71 @@ export default function Profile() {
       // Tetap logout dari sisi client meski server error
     } finally {
       setIsLoggingOut(false);
+      setUser(null);
       navigate("/login");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm("Hapus akun dan seluruh data secara permanen?");
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      await userApi.deleteMe();
+    } catch {
+      // Tetap keluarkan user karena token client sudah dibersihkan oleh API client.
+    } finally {
+      setIsDeleting(false);
+      setUser(null);
+      navigate("/login");
+    }
+  };
+
+  const handleLevelUp = async () => {
+    setIsLevelingUp(true);
+    setProfileError("");
+
+    try {
+      const res = await userApi.levelUp();
+      const updatedUser = res.data.user;
+      setProfileUser((prev) => ({
+        ...prev,
+        name: updatedUser.username || prev.name,
+        level: updatedUser.level ?? prev.level,
+        title: titleCase(updatedUser.rankTitle || prev.title),
+        experiencePoints: updatedUser.experiencePoints ?? prev.experiencePoints,
+        badges: updatedUser.badges ?? prev.badges,
+      }));
+    } catch (err) {
+      setProfileError(err.message || "Gagal memproses kenaikan level.");
+    } finally {
+      setIsLevelingUp(false);
+    }
+  };
+
+  const handleUpdatePicture = async () => {
+    const profilePicture = window.prompt(
+      "Masukkan URL foto profil baru",
+      user.avatar.startsWith("http") ? user.avatar : "",
+    );
+    if (!profilePicture) return;
+
+    setIsUpdatingPicture(true);
+    setProfileError("");
+
+    try {
+      const res = await userApi.updatePicture(profilePicture.trim());
+      const updatedUser = res.data.user;
+      setProfileUser((prev) => ({
+        ...prev,
+        name: updatedUser.username || prev.name,
+        avatar: updatedUser.profilePicture || prev.avatar,
+      }));
+    } catch (err) {
+      setProfileError(err.message || "Gagal memperbarui foto profil.");
+    } finally {
+      setIsUpdatingPicture(false);
     }
   };
 
@@ -133,6 +238,12 @@ export default function Profile() {
             </div>
           )}
 
+          {profileError && (
+            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-600 font-jakarta">
+              {profileError}
+            </div>
+          )}
+
           {/* Profile Header */}
           <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(34,197,94,0.08)] border border-[#e5eeff] mb-8">
             <div className="flex flex-col lg:flex-row lg:items-center gap-6">
@@ -141,7 +252,13 @@ export default function Profile() {
                 <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-[#e5eeff]">
                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                 </div>
-                <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#006e2f] text-white rounded-lg flex items-center justify-center hover:bg-[#005823] transition-colors">
+                <button
+                  type="button"
+                  onClick={handleUpdatePicture}
+                  disabled={isUpdatingPicture}
+                  aria-label="Edit foto profil"
+                  className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#006e2f] text-white rounded-lg flex items-center justify-center hover:bg-[#005823] transition-colors disabled:opacity-60"
+                >
                   <Edit2 className="w-4 h-4" />
                 </button>
               </div>
@@ -151,10 +268,10 @@ export default function Profile() {
                 <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
                   <div>
                     <h1 className="text-2xl lg:text-3xl font-bold text-[#191c20] font-lexend">
-                      {user.name || "—"}
+                      {isProfileLoading ? "Memuat profil..." : user.name || "—"}
                     </h1>
                     <p className="text-[#6d7b6c] font-jakarta">
-                      {user.joinDate ? `Bergabung sejak ${user.joinDate}` : ""}
+                      {user.email || (user.joinDate ? `Bergabung sejak ${user.joinDate}` : "")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 bg-yellow-50 px-4 py-1 rounded-full w-fit">
@@ -163,6 +280,14 @@ export default function Profile() {
                       Level {user.level} - {user.title}
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleLevelUp}
+                    disabled={isLevelingUp}
+                    className="px-4 py-2 rounded-xl bg-[#006e2f] text-white text-sm font-semibold font-jakarta hover:bg-[#005823] transition-colors disabled:opacity-60"
+                  >
+                    {isLevelingUp ? "Memproses..." : "Naik Level"}
+                  </button>
                 </div>
               </div>
 
@@ -171,7 +296,11 @@ export default function Profile() {
                 <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-xl">
                   <Streak count={user.streak} variant="compact" />
                 </div>
-                
+                <div className="flex flex-col text-sm font-jakarta text-[#6d7b6c]">
+                  <span>{user.experiencePoints.toLocaleString("id-ID")} EXP</span>
+                  <span>{user.rewardPoints.toLocaleString("id-ID")} poin hadiah</span>
+                </div>
+                 
               </div>
             </div>
           </div>
@@ -259,7 +388,7 @@ export default function Profile() {
               )}
 
               {/* Weight Stats */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 border border-[#e5eeff] rounded-2xl">
                   <p className="text-xs text-[#6d7b6c] font-jakarta mb-1">Berat Awal</p>
                   <p className="text-xl font-bold text-[#191c20] font-lexend">
@@ -281,10 +410,6 @@ export default function Profile() {
                       {weightDiff > 0 ? "+" : ""}{weightDiff} kg
                     </p>
                   )}
-                </div>
-                <div className="text-center p-4 border border-[#e5eeff] rounded-2xl">
-                  <p className="text-xs text-[#6d7b6c] font-jakarta mb-1">Target</p>
-                  <p className="text-xl font-bold text-[#191c20] font-lexend">{targetWeight} kg</p>
                 </div>
               </div>
 
@@ -311,26 +436,6 @@ export default function Profile() {
 
             {/* Stats Cards */}
             <div className="space-y-4">
-              {/* Progress ke Target */}
-              <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(34,197,94,0.08)] border border-[#e5eeff]">
-                <div className="mb-4">
-                  <p className="text-xs text-[#6d7b6c] font-jakarta">Sisa menuju target</p>
-                  <p className="text-xl font-bold text-[#006e2f] font-lexend">
-                    {latestEntry ? `${Math.max(0, +(currentWeight - targetWeight).toFixed(1))} kg` : "—"}
-                  </p>
-                </div>
-                <div className="h-2 bg-[#e5eeff] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#006e2f] to-[#22c55e] rounded-full transition-all duration-500"
-                    style={{ width: `${weightProgress}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-[#6d7b6c] font-jakarta mt-1">
-                  <span>{firstEntry ? `${firstEntry.weight} kg` : "—"}</span>
-                  <span>{targetWeight} kg</span>
-                </div>
-              </div>
-
               {/* Calories Card */}
               <div className="bg-[#006e2f] rounded-3xl p-6 text-white">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
@@ -374,9 +479,15 @@ export default function Profile() {
               </button>
 
               {/* Hapus Akun */}
-              <button className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-red-50 transition-colors text-left">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-red-50 transition-colors text-left disabled:opacity-60"
+              >
                 <Trash2 className="w-5 h-5 text-red-500 flex-shrink-0" />
-                <span className="flex-1 font-jakarta text-red-500">Hapus Akun</span>
+                <span className="flex-1 font-jakarta text-red-500">
+                  {isDeleting ? "Menghapus akun..." : "Hapus Akun"}
+                </span>
               </button>
 
             </div>

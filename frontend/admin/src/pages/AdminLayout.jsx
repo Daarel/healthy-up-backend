@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Users, ClipboardCheck, Gift, LogOut } from "lucide-react";
+import { adminApi } from "@/lib/api";
 
 const navItems = [
   { to: "/admin/users", label: "Manajemen User", icon: Users },
@@ -13,8 +14,12 @@ const navItems = [
 export default function AdminLayout() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem("admin_token");
+  const handleLogout = async () => {
+    try {
+      await adminApi.logout();
+    } catch {
+      localStorage.removeItem("admin_token");
+    }
     navigate("/admin/login");
   };
 

@@ -1,55 +1,40 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronRight, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { adminApi } from "@/lib/api";
 
-// Data dummy — nanti diganti dengan fetch ke API
-const DUMMY_USERS = [
-  {
-    id: "1",
-    username: "ghifari123",
-    email: "ghifari@email.com",
-    level: 5,
-    rankTitle: "Petualang",
-    streakCount: 14,
-    createdAt: "2026-01-10",
-  },
-  {
-    id: "2",
-    username: "siti_sehat",
-    email: "siti@email.com",
-    level: 3,
-    rankTitle: "Pemula",
-    streakCount: 7,
-    createdAt: "2026-02-15",
-  },
-  {
-    id: "3",
-    username: "budi_fit",
-    email: "budi@email.com",
-    level: 8,
-    rankTitle: "Ahli",
-    streakCount: 30,
-    createdAt: "2026-01-05",
-  },
-  {
-    id: "4",
-    username: "rina_wellness",
-    email: "rina@email.com",
-    level: 2,
-    rankTitle: "Pemula",
-    streakCount: 3,
-    createdAt: "2026-03-20",
-  },
-];
+const formatDate = (value) => value ? new Date(value).toLocaleDateString("id-ID") : "-";
 
 export default function AdminUsers() {
   const navigate = useNavigate();
-  const [users, setUsers] = useState(DUMMY_USERS);
+  const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null); // id user yang mau dihapus
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadUsers = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const res = await adminApi.getUsers({ page: 1, limit: 100 });
+        if (!ignore) setUsers(res.data.users || []);
+      } catch (err) {
+        if (!ignore) setError(err.message || "Gagal memuat data user.");
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
+    };
+
+    loadUsers();
+    return () => { ignore = true; };
+  }, []);
 
   const filtered = users.filter(
     (u) =>
@@ -60,10 +45,10 @@ export default function AdminUsers() {
   const handleDelete = async (id) => {
     setDeletingId(id);
     try {
-      // TODO: ganti dengan API call
-      // await adminApi.deleteUser(id);
-      await new Promise((r) => setTimeout(r, 800)); // simulasi
+      await adminApi.deleteUser(id);
       setUsers((prev) => prev.filter((u) => u.id !== id));
+    } catch (err) {
+      setError(err.message || "Gagal menghapus user.");
     } finally {
       setDeletingId(null);
       setConfirmDelete(null);
@@ -76,6 +61,12 @@ export default function AdminUsers() {
         <h1 className="text-xl font-semibold text-gray-800">Manajemen User</h1>
         <p className="text-sm text-gray-500 mt-0.5">{users.length} user terdaftar</p>
       </div>
+
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          {error}
+        </p>
+      )}
 
       {/* Search */}
       <div className="relative max-w-sm">
@@ -106,7 +97,13 @@ export default function AdminUsers() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-gray-400">
+                      <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat user...
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-8 text-gray-400">
                       Tidak ada user ditemukan
@@ -124,7 +121,7 @@ export default function AdminUsers() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-600">{user.streakCount} hari</td>
-                      <td className="px-4 py-3 text-gray-500">{user.createdAt}</td>
+                      <td className="px-4 py-3 text-gray-500">{formatDate(user.createdAt)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2 justify-end">
                           {/* Lihat detail */}

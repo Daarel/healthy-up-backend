@@ -1,7 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ResetPasswordBaru from '../pages/ResetPasswordBaru';
+
+vi.mock('../lib/api', () => ({
+  authApi: {
+    resetPassword: vi.fn().mockResolvedValue({ status: 'success' }),
+  },
+}));
 
 const renderPage = () =>
   render(
@@ -11,6 +17,14 @@ const renderPage = () =>
   );
 
 describe('ResetPasswordBaru Page', () => {
+  beforeEach(() => {
+    sessionStorage.setItem('reset_email', 'user@email.com');
+    sessionStorage.setItem('reset_otp', '123456');
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => sessionStorage.clear());
+
   it('renders tanpa error', () => { renderPage(); });
 
   it('menampilkan judul Buat Password Baru', () => {
@@ -95,7 +109,7 @@ describe('ResetPasswordBaru Page', () => {
     expect(input).toHaveAttribute('type', 'text');
   });
 
-  it('submit valid menampilkan halaman sukses', () => {
+  it('submit valid menampilkan halaman sukses', async () => {
     renderPage();
     fireEvent.change(screen.getByLabelText(/Password Baru/i), {
       target: { value: 'Kuat123!' },
@@ -104,7 +118,7 @@ describe('ResetPasswordBaru Page', () => {
       target: { value: 'Kuat123!' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Simpan Password Baru/i }));
-    expect(screen.getByText(/Password Berhasil Diubah/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/Password Berhasil Diubah/i)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /Masuk Sekarang/i })).toBeInTheDocument();
   });
 });
