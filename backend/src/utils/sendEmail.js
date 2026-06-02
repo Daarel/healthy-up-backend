@@ -1,25 +1,24 @@
-import nodeMailer from 'nodemailer';
+import nodemailer from 'nodemailer';
 
-const sendEmail = async (options) => {
-  const transporter = nodeMailer.createTransport({
+const getTransporter = () =>
+  nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    secure: true,
+    port: Number(process.env.EMAIL_PORT) || 587,
+    secure: Number(process.env.EMAIL_PORT) === 465,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
-  const mailOptions = {
-    from: `"HealthyUp Support" <${process.env.EMAIL_USER}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
-    html: options.htmlMessage,
-  };
+export const sendEmail = async ({ email, subject, message, htmlMessage }) => {
+  const transporter = getTransporter();
 
-  await transporter.sendMail(mailOptions);
+  await transporter.sendMail({
+    from: `HealthyUp <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject,
+    text: message,
+    html: htmlMessage,
+  });
 };
-
-export { sendEmail };

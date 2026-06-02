@@ -1,95 +1,91 @@
-/**
- * api.js — MODE MOCK (tidak terhubung ke server)
- *
- * Semua fungsi mengembalikan data hardcoded agar frontend bisa
- * berjalan penuh tanpa backend. Ganti implementasi ini dengan
- * fetch ke server nyata saat backend sudah siap.
- */
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api/v1";
 
-// ─── Data mock ────────────────────────────────────────────────────────────────
-
-const MOCK_USER = {
-  id: 1,
-  username: "Ghifari",
-  email: "ghifari@healthyup.com",
-};
-
-// Simulasi sesi: simpan di memori (hilang saat refresh — wajar untuk mock)
-let _session = null;
-
-// ─── Helper delay opsional (bisa di-set 0 untuk instan) ──────────────────────
-const delay = (ms = 300) => new Promise((res) => setTimeout(res, ms));
-
-// ─── Auth API ─────────────────────────────────────────────────────────────────
-
+const TOKEN_KEY = "healthyup:token";
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+function setToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+function removeToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+async function request(path, options = {}) {
+  const token = getToken();
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message =
+      data?.message ||
+      data?.errors?.[0]?.message ||
+      "Terjadi kesalahan pada server.";
+    throw new Error(message);
+  }
+  return data;
+}
 export const authApi = {
   login: async (email, password) => {
-    await delay();
-    // Validasi sederhana: terima email apapun yang valid + password ≥ 8 karakter
-    if (!email || !password || password.length < 8) {
-      throw new Error("Email atau password tidak valid.");
+    const data = await request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (data.data?.token) {
+      setToken(data.data.token);
     }
-    _session = { ...MOCK_USER, email };
-    return {
-      status: "success",
-      data: { user: _session },
-    };
+    return data;
   },
-
   register: async (username, email, password) => {
-    await delay();
-    if (!username || !email || !password) {
-      throw new Error("Semua field wajib diisi.");
+    const data = await request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, email, password }),
+    });
+    if (data.data?.token) {
+      setToken(data.data.token);
     }
-    _session = { id: Date.now(), username, email };
-    return {
-      status: "success",
-      data: { user: _session },
-    };
+    return data;
   },
-
   logout: async () => {
-    await delay(100);
-    _session = null;
-    return { status: "success", message: "Logged out" };
-  },
-
-  forgotPassword: async (email) => {
-    await delay();
-    if (!email) throw new Error("Email wajib diisi.");
-    // Simulasi: selalu berhasil
-    return {
-      status: "success",
-      message: "OTP telah dikirim ke email kamu (simulasi).",
-    };
-  },
-
-  resetPassword: async (email, otp, newPassword, confirmedPassword) => {
-    await delay();
-    if (newPassword !== confirmedPassword) {
-      throw new Error("Password tidak cocok.");
+    try {
+      return await request("/auth/logout", {
+        method: "POST",
+      });
+    } finally {
+      removeToken();
     }
-    // Simulasi: OTP apapun diterima
-    return {
-      status: "success",
-      message: "Password berhasil diubah.",
-    };
+  },
+  forgotPassword: async (email) => {
+    return request("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+  resetPassword: async (email, otp, newPassword, confirmedPassword) => {
+    return request("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        otp,
+        newPassword,
+        confirmedPassword,
+      }),
+    });
+  },
+  resendOtp: async (email) => {
+    return request("/auth/resend-otp", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
   },
 };
-
-// ─── User API ─────────────────────────────────────────────────────────────────
-
 export const userApi = {
-  /**
-   * Cek sesi aktif — dipakai AuthContext saat app pertama kali dimuat.
-   * Mock: selalu kembalikan null (belum login) supaya PrivateRoute
-   * mengarahkan ke /login. Ubah ke `_session ?? MOCK_USER` jika ingin
-   * langsung masuk tanpa login.
-   */
   getMe: async () => {
-    await delay(100);
-    const user = _session ?? null;
-    if (!user) throw new Error("Tidak ada sesi aktif.");
-    return { status: "success", data: { user } };
+    return request("/users/user");
   },
 };
