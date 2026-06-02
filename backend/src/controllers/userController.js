@@ -3,9 +3,10 @@ import { z } from 'zod';
 import {
   deleteUserByAdminSchema,
   getAllUsersSchema,
-  updateProfilePictureSchema, // Pastikan ini sudah dibuat di schemas/userSchema.js
+  updateProfilePictureSchema,
 } from '../schemas/userSchema.js';
 import UserService from '../services/userService.js';
+import cloudinary from '../config/cloudinary.js';
 
 class UserController {
   /**
@@ -140,11 +141,31 @@ class UserController {
   static async updatePicture(req, res) {
     try {
       const userId = req.user.id;
-      const { profilePicture } = updateProfilePictureSchema.parse(req.body);
+
+      if (!req.file) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Harap pilih file gambar terlebih dahulu',
+        });
+      }
+
+      const fileBase64 = req.file.buffer.toString('base64');
+      const fileUrl = `data:${req.file.mimetype};base64,${fileBase64}`;
+
+      // 3. Tembak ke Cloudinary
+      const uploadResponse = await cloudinary.uploader.upload(fileUrl, {
+        folder: 'healthyup/profiles',
+        allowed_formats: ['jpg', 'png', 'jpeg'],
+        transformation: [
+          { width: 200, height: 200, crop: 'fill', gravity: 'face' },
+        ],
+      });
+
+      const cdnImageUrl = uploadResponse.secure_url;
 
       const updatedUser = await UserService.updateProfilePicture(
         userId,
-        profilePicture,
+        cdnImageUrl,
       );
 
       return res.status(200).json({
@@ -153,13 +174,11 @@ class UserController {
         data: { user: updatedUser },
       });
     } catch (err) {
-      if (err instanceof z.ZodError)
-        return UserController.handleZodError(err, res);
-      return UserController.handleServerError(
-        err,
-        res,
-        'Gagal memperbarui foto profil',
-      );
+      console.error('Cloudinary Upload Error:', err);
+      return res.status(500).json({
+        status: 'error',
+        message: 'Gagal memperbarui foto profil di server',
+      });
     }
   }
 

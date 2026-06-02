@@ -62,10 +62,10 @@ class UserService {
     };
   }
 
-  static async updateProfilePicture(userId, imageUrl) {
+  static async updateProfilePicture(userId, photoProfile) {
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { profilePicture: imageUrl },
+      data: { profilePicture: photoProfile },
       select: { id: true, username: true, profilePicture: true },
     });
 
