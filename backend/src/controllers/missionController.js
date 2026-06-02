@@ -57,6 +57,14 @@ class MissionController {
         });
       }
 
+      if (err.message === 'MISSIONS_ALREADY_GENERATED') {
+        return res.status(400).json({
+          status: 'error',
+          message:
+            'Anda sudah membuat misi dalam 7 hari terakhir. Selesaikan misi yang ada dan kembali lagi nanti!',
+        });
+      }
+
       if (err.message === 'AI_GENERATION_FAILED') {
         return res.status(502).json({
           status: 'error',
@@ -71,27 +79,6 @@ class MissionController {
         message: 'Internal server error',
       });
     }
-  }
-
-  // helper methods
-  static handleZodError(err, res) {
-    const validationIssues = err.issues || err.errors || [];
-    return res.status(400).json({
-      status: 'fail',
-      errors: validationIssues.map((e) => ({
-        field: e.path[0] || 'payload',
-        message: e.message,
-      })),
-    });
-  }
-
-  static handleServerError(err, res) {
-    console.error('Terjadi Kesalahan di Controller:', err);
-
-    return res.status(500).json({
-      status: 'error',
-      message: 'Internal server error',
-    });
   }
 
   /**
@@ -243,7 +230,6 @@ class MissionController {
   static async getUserMissions(req, res) {
     try {
       const userId = req.user.id;
-      const { date } = req.query;
 
       const missions = await MissionService.getUserMissions(userId, date);
 
@@ -261,6 +247,27 @@ class MissionController {
         'Gagal mengambil daftar misi',
       );
     }
+  }
+
+  // helper methods
+  static handleZodError(err, res) {
+    const validationIssues = err.issues || err.errors || [];
+    return res.status(400).json({
+      status: 'fail',
+      errors: validationIssues.map((e) => ({
+        field: e.path[0] || 'payload',
+        message: e.message,
+      })),
+    });
+  }
+
+  static handleServerError(err, res) {
+    console.error('Terjadi Kesalahan di Controller:', err);
+
+    return res.status(500).json({
+      status: 'error',
+      message: 'Internal server error',
+    });
   }
 }
 

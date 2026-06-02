@@ -5,33 +5,23 @@ import prisma from '../lib/prisma.js';
 class MissionService {
   static async getWeeklyProgress(userId) {
     const curr = new Date();
-    const day = curr.getDay();
 
-    const diffToMonday = curr.getDate() - day + (day === 0 ? -6 : 1);
-
-    const startDate = new Date(curr.setDate(diffToMonday));
-    startDate.setHours(0, 0, 0, 0);
-
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
-    endDate.setHours(23, 59, 59, 999);
+    const sevenDaysAgo = new Date(curr.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const [totalMissions, completedMissions] = await prisma.$transaction([
       prisma.mission.count({
         where: {
           userId: userId,
-          scheduledDate: {
-            gte: startDate,
-            lte: endDate,
+          createdAt: {
+            gte: sevenDaysAgo,
           },
         },
       }),
       prisma.mission.count({
         where: {
           userId: userId,
-          scheduledDate: {
-            gte: startDate,
-            lte: endDate,
+          createdAt: {
+            gte: sevenDaysAgo,
           },
           status: 'completed',
         },
@@ -48,8 +38,8 @@ class MissionService {
       completedMissions,
       totalMissions,
       period: {
-        start: startDate,
-        end: endDate,
+        start: sevenDaysAgo,
+        end: curr,
       },
     };
   }
@@ -64,14 +54,28 @@ class MissionService {
 
     if (!profile) throw new Error('PROFILE_NOT_FOUND');
 
-    let targetLoss = Number(profile.weightKg) - Number(profile.goalWeight);
-    if (targetLoss < 0) targetLoss = 0;
+    const curr = new Date();
+    const sevenDaysAgo = new Date(curr.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const existingMissionsThisWeek = await prisma.mission.count({
+      where: {
+        userId: userId,
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
+      },
+    });
+
+    if (existingMissionsThisWeek > 0) {
+      throw new Error('MISSIONS_ALREADY_GENERATED');
+    }
 
     const aiPayload = {
-      Name: profile.user.username,
-      Target_Weight_Loss: targetLoss,
-      Height: Number(profile.heightCm) / 100,
-      Weight: Number(profile.weightKg),
+      username: profile.user.username,
+      goalWeight: Number(profile.goalWeight),
+      factualBMI: Number(profile.factualBMI),
+      heightCm: Number(profile.heightCm),
+      weightKg: Number(profile.weightKg),
       Gender: profile.gender === 'male' ? 'Male' : 'Female',
       Age: profile.age,
     };
@@ -83,44 +87,25 @@ class MissionService {
       );
 
       const { ai_analysis, gamification_data } = aiResponse.data;
+
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       const newMissions = [];
 
-      gamification_data.schedule.forEach((dayData) => {
-        const missionDate = new Date(today);
-        missionDate.setDate(today.getDate() + (dayData.day - 1));
-        missionDate.setHours(0, 0, 0, 0);
-
-        dayData.quests.forEach((quest) => {
-          let categoryEnum = 'physical';
-
-          const aiCategory = quest.category.toLowerCase();
-
-          if (aiCategory.includes('nutrisi') || aiCategory.includes('makan')) {
-            categoryEnum = 'nutrition';
-          } else if (
-            aiCategory.includes('kebiasaan') ||
-            aiCategory.includes('habit') ||
-            aiCategory.includes('mental')
-          ) {
-            categoryEnum = 'mental';
-          } else if (
-            aiCategory.includes('olahraga') ||
-            aiCategory.includes('fisik')
-          ) {
-            categoryEnum = 'physical';
-          }
-
+      gamification_data.schedule.forEach((scheduleItem) => {
+        scheduleItem.quests.forEach((quest) => {
           newMissions.push({
             userId: userId,
             title: quest.quest_name,
             description: quest.description,
             category: categoryEnum,
-            difficultyScore: 1,
-            caloriesImpact: 0,
-            scheduledDate: missionDate,
-            xpReward: quest.xp_reward,
-            pointsReward: Math.floor(quest.xp_reward / 2),
+            icon: quest.icon,
+            difficultyScore: quest.difficultyScore,
+            caloriesImpact: quest.caloriesImpact,
+            scheduledDate: today,
+            xpReward: quest.xpReward,
+            pointsReward: quest.pointsReward,
           });
         });
       });
@@ -240,7 +225,7 @@ class MissionService {
         const rejectedMission = await tx.mission.update({
           where: { id: missionId },
           data: {
-            status: 'failed', // Gagalkan misi
+            status: 'failed',
             verificationStatus: 'rejected',
             rejectionReason: rejectionReason || null,
           },
@@ -260,30 +245,18 @@ class MissionService {
     });
   }
 
-  static async getUserMissions(userId, filterDate) {
-    let dateFilter = {};
-
-    if (filterDate) {
-      const startOfDay = new Date(filterDate);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(filterDate);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      dateFilter = {
-        scheduledDate: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      };
-    }
+  static async getUserMissions(userId) {
+    const curr = new Date();
+    const sevenDaysAgo = new Date(curr.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const missions = await prisma.mission.findMany({
       where: {
         userId: userId,
-        ...dateFilter,
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
       },
-      orderBy: { scheduledDate: 'asc' },
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     });
 
     return missions;
