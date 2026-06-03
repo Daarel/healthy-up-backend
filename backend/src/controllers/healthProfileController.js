@@ -127,7 +127,6 @@ class HealthProfileController {
       });
     } catch (err) {
       if (err instanceof z.ZodError) {
-        // Asumsi Anda punya metode handleZodError seperti di UserController
         return HealthProfileController.handleZodError(err, res);
       }
       return HealthProfileController.handleServerError(

@@ -35,23 +35,16 @@ class HealthProfileService {
       now.getMonth(),
       now.getDate(),
     );
+
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfWeek.getDate() - 7);
 
-    const [
-      dailyBurned,
-      weeklyBurned,
-      dailyIntake,
-      weeklyIntake,
-      healthProfile,
-    ] = await Promise.all([
-      prisma.mission.aggregate({
-        _sum: { caloriesImpact: true },
+    const [weeklyLog, weeklyPhysicalMissions] = await Promise.all([
+      prisma.calorieLog.aggregate({
+        _sum: { calories: true },
         where: {
           userId,
-          category: 'physical',
-          status: 'completed',
-          completedAt: { gte: startOfToday },
+          loggedAt: { gte: startOfWeek },
         },
       }),
 
@@ -63,44 +56,21 @@ class HealthProfileService {
           status: 'completed',
           completedAt: { gte: startOfWeek },
         },
-      }),
-
-      prisma.mission.aggregate({
-        _sum: { caloriesImpact: true },
-        where: {
-          userId,
-          category: 'nutrition',
-          status: 'completed',
-          completedAt: { gte: startOfToday },
-        },
-      }),
-
-      prisma.mission.aggregate({
-        _sum: { caloriesImpact: true },
-        where: {
-          userId,
-          category: 'nutrition',
-          status: 'completed',
-          completedAt: { gte: startOfWeek },
-        },
-      }),
-
-      prisma.healthProfile.findUnique({
-        where: { userId },
-        select: { goalWeight: true },
       }),
     ]);
 
+    const burnedFromLog = weeklyLog._sum.calories || 0;
+
+    const burnedFromMissions = Math.abs(
+      weeklyPhysicalMissions._sum.caloriesImpact || 0,
+    );
+
     return {
-      caloriesBurned: {
-        today: Math.abs(dailyBurned._sum.caloriesImpact || 0),
-        weekly: Math.abs(weeklyBurned._sum.caloriesImpact || 0),
+      status: 'success',
+      data: {
+        weeklyBurnedFromLog: burnedFromLog,
+        weeklyBurnedFromMissions: burnedFromMissions,
       },
-      caloriesIntake: {
-        today: dailyIntake._sum.caloriesImpact || 0,
-        weekly: weeklyIntake._sum.caloriesImpact || 0,
-      },
-      profile: healthProfile,
     };
   }
 
