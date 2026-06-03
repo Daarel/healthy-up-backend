@@ -10,8 +10,6 @@ const getTransporter = () =>
       pass: process.env.EMAIL_PASS,
     },
     connectionTimeout: 10000,
-    logger: true,
-    debug: true,
   });
 
 export const sendEmail = async ({ email, subject, message, htmlMessage }) => {

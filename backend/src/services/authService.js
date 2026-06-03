@@ -47,7 +47,7 @@ class AuthService {
     if (!user) return true;
 
     const otpCode = crypto.randomInt(100000, 999999).toString();
-    const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 1 menit
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 menit
 
     await prisma.otpCode.upsert({
       where: { email },
