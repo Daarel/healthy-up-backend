@@ -201,7 +201,7 @@ export default function OnboardingStep1() {
       <div className="hidden lg:block lg:w-1/2 p-6 bg-[#e5eeff]">
         <div className="h-full overflow-hidden relative">
           <img
-            src="/public/onboarding/1.jpg"
+            src="/onboarding/1.jpg"
             alt="Fitness"
             className="w-full h-full object-cover rounded-3xl"
           />

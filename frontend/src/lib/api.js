@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5001/api/v1";
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:5001/api/v1";
 const REQUEST_TIMEOUT_MS = 20000;
 
 const TOKEN_KEY = "healthyup:token";
