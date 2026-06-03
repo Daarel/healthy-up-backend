@@ -1919,7 +1919,7 @@ components:
         status:
           type: string
           example: error
-        message:
+        message: 
           type: string
           example: Pesan error deskriptif
         errors:
