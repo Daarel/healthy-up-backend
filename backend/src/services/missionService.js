@@ -102,7 +102,7 @@ class MissionService {
           icon: quest.icon || 'activity',
           difficultyScore: quest.difficultyScore || 1,
           caloriesImpact: quest.caloriesImpact || 0,
-          status: "assigned",
+          status: 'assigned',
           scheduledDate: today,
           xpReward: quest.xpReward,
           pointsReward: quest.pointsReward,
@@ -163,38 +163,18 @@ class MissionService {
 
     if (!mission) throw new Error('MISSION_NOT_FOUND');
 
-    if (mission.status === 'completed' && newStatus === 'completed') {
+    if (mission.status === 'completed') {
       throw new Error('MISSION_ALREADY_COMPLETED');
-    }
-
-    if (newStatus === 'completed') {
-      const [updatedMission, updatedUser] = await prisma.$transaction([
-        prisma.mission.update({
-          where: { id: missionId },
-          data: {
-            status: 'completed',
-            completedAt: new Date(),
-            proofImagePath: proofImagePath || mission.proofImagePath,
-          },
-        }),
-        prisma.user.update({
-          where: { id: userId },
-          data: {
-            experiencePoints: { increment: mission.xpReward },
-            rewardPoints: { increment: mission.pointsReward },
-          },
-          select: { experiencePoints: true, rewardPoints: true },
-        }),
-      ]);
-
-      return { mission: updatedMission, userStats: updatedUser };
     }
 
     const updatedMission = await prisma.mission.update({
       where: { id: missionId },
       data: {
         status: newStatus,
+        completedAt: newStatus === 'completed' ? new Date() : null,
         proofImagePath: proofImagePath || mission.proofImagePath,
+        verificationStatus:
+          newStatus === 'completed' ? 'pending' : mission.verificationStatus,
       },
     });
 
@@ -217,7 +197,17 @@ class MissionService {
           where: { id: missionId },
           data: { verificationStatus: 'approved' },
         });
-        return approvedMission;
+
+        const updatedUser = await tx.user.update({
+          where: { id: mission.userId },
+          data: {
+            experiencePoints: { increment: mission.xpReward },
+            rewardPoints: { increment: mission.pointsReward },
+          },
+          select: { experiencePoints: true, rewardPoints: true, level: true },
+        });
+
+        return { mission: approvedMission, userStats: updatedUser };
       }
 
       if (verificationStatus === 'rejected') {
@@ -230,35 +220,62 @@ class MissionService {
           },
         });
 
-        if (mission.status === 'completed') {
-          await tx.user.update({
-            where: { id: mission.userId },
-            data: {
-              experiencePoints: { decrement: mission.xpReward },
-              rewardPoints: { decrement: mission.pointsReward },
-            },
-          });
-        }
-        return rejectedMission;
+        return { mission: rejectedMission, userStats: null };
       }
     });
   }
 
-  static async getUserMissions(userId) {
-    const curr = new Date();
-    const sevenDaysAgo = new Date(curr.getTime() - 7 * 24 * 60 * 60 * 1000);
+  static async getUserMissions(userId, dateString, statusFilter) {
+    let endDate = new Date();
+
+    if (dateString) {
+      endDate = new Date(dateString);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    startDate.setHours(0, 0, 0, 0);
+
+    const whereClause = {
+      userId: userId,
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+
+    if (statusFilter) {
+      whereClause.status = statusFilter;
+    }
 
     const missions = await prisma.mission.findMany({
-      where: {
-        userId: userId,
-        createdAt: {
-          gte: sevenDaysAgo,
-        },
-      },
+      where: whereClause,
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     });
 
     return missions;
+  }
+
+  static async getPendingVerifications() {
+    const pendingMissions = await prisma.mission.findMany({
+      where: {
+        status: 'completed',
+        verificationStatus: 'pending',
+      },
+      include: {
+        user: {
+          select: {
+            username: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        completedAt: 'asc',
+      },
+    });
+
+    return pendingMissions;
   }
 }
 

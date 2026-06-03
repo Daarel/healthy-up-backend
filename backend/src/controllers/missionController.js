@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import cloudinary from '../config/cloudinary.js';
 
 import {
   missionIdParamSchema,
@@ -123,21 +124,34 @@ class MissionController {
   static async updateMissionStatus(req, res) {
     try {
       const { id } = missionIdParamSchema.parse(req.params);
-      const { status: newStatus, proofImagePath } =
-        updateMissionStatusSchema.parse(req.body);
+      const { status: newStatus } = updateMissionStatusSchema.parse(req.body);
       const userId = req.user.id;
+
+      let proofMediaUrl = null;
+
+      if (req.file) {
+        const fileBase64 = req.file.buffer.toString('base64');
+        const fileUri = `data:${req.file.mimetype};base64,${fileBase64}`;
+
+        const uploadResponse = await cloudinary.uploader.upload(fileUri, {
+          folder: 'healthyup/mission-proofs',
+          resource_type: 'auto',
+        });
+
+        proofMediaUrl = uploadResponse.secure_url;
+      }
 
       const result = await MissionService.updateMissionStatus(
         id,
         userId,
         newStatus,
-        proofImagePath,
+        proofMediaUrl,
       );
 
-      // Siapkan pesan dinamis
       let message = 'Status misi berhasil diperbarui';
       if (newStatus === 'completed') {
-        message = 'Misi selesai! XP dan Poin telah ditambahkan ke akun Anda.';
+        message =
+          'Bukti misi berhasil dikirim! Menunggu verifikasi dari admin.';
       }
 
       return res.status(200).json({
@@ -161,6 +175,14 @@ class MissionController {
         });
       }
 
+      if (err.http_code) {
+        console.error('Cloudinary Upload Error:', err);
+        return res.status(500).json({
+          status: 'error',
+          message: 'Gagal mengunggah file bukti ke server cloud',
+        });
+      }
+
       return MissionController.handleServerError(
         err,
         res,
@@ -181,7 +203,7 @@ class MissionController {
         req.body,
       );
 
-      const verifiedMission = await MissionService.verifyMission(
+      const result = await MissionService.verifyMission(
         id,
         verificationStatus,
         rejectionReason,
@@ -189,13 +211,13 @@ class MissionController {
 
       const message =
         verificationStatus === 'approved'
-          ? 'Bukti misi berhasil disetujui.'
-          : 'Misi berhasil ditolak dan reward telah ditarik kembali.';
+          ? 'Bukti misi disetujui. XP dan Poin telah diberikan kepada user.'
+          : 'Misi ditolak. Alasan penolakan telah dicatat.';
 
       return res.status(200).json({
         status: 'success',
         message,
-        data: { mission: verifiedMission },
+        data: result,
       });
     } catch (err) {
       if (err instanceof z.ZodError)
@@ -223,15 +245,20 @@ class MissionController {
   }
 
   /**
-   * * @desc    Get List of User Missions (Optional: filter by date)
+   * * @desc    Get List of User Missions (Optional: filter by date & status)
    * ! @route   GET /api/v1/missions
    * ? @access  Private
    */
   static async getUserMissions(req, res) {
     try {
       const userId = req.user.id;
+      const { date, status } = req.query;
 
-      const missions = await MissionService.getUserMissions(userId, date);
+      const missions = await MissionService.getUserMissions(
+        userId,
+        date,
+        status,
+      );
 
       return res.status(200).json({
         status: 'success',
@@ -245,6 +272,32 @@ class MissionController {
         err,
         res,
         'Gagal mengambil daftar misi',
+      );
+    }
+  }
+
+  /**
+   * * @desc    Get All Pending Missions for Review
+   * ! @route   GET /api/v1/admin/missions/pending
+   * ? @access  Private (Admin Only)
+   */
+  static async getPendingVerifications(req, res) {
+    try {
+      const pendingMissions = await MissionService.getPendingVerifications();
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Berhasil mengambil daftar antrean verifikasi',
+        data: {
+          total: pendingMissions.length,
+          missions: pendingMissions,
+        },
+      });
+    } catch (err) {
+      return MissionController.handleServerError(
+        err,
+        res,
+        'Gagal mengambil daftar antrean misi',
       );
     }
   }
