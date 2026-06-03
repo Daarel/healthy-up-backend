@@ -1,25 +1,17 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const getTransporter = () =>
-  nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    connectionTimeout: 10000,
-  });
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmail = async ({ email, subject, message, htmlMessage }) => {
-  const transporter = getTransporter();
-
-  await transporter.sendMail({
-    from: `HealthyUp <${process.env.EMAIL_USER}>`,
+  const { error } = await resend.emails.send({
+    from: 'HealthyUp <onboarding@resend.dev>',
     to: email,
-    subject,
+    subject: subject,
     text: message,
     html: htmlMessage,
   });
+
+  if (error) {
+    throw new Error(error.message);
+  }
 };
