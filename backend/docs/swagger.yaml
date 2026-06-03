@@ -186,7 +186,7 @@ paths:
   /auth/forgot-password:
     post:
       summary: Meminta kode OTP untuk reset password
-      description: Menghasilkan kode OTP 6 digit dan mengirimkannya ke email pengguna. Berlaku selama 1 menit.
+      description: Menghasilkan kode OTP 6 digit dan mengirimkannya ke email pengguna. Berlaku selama 5 menit.
       tags: [Auth]
       requestBody:
         required: true

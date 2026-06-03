@@ -55,13 +55,13 @@ class AuthService {
       create: { email, code: otpCode, expiresAt },
     });
 
-    const message = `Kode OTP Anda adalah ${otpCode}. Kode ini akan kadaluwarsa dalam 1 menit. Jangan bagikan kode ini kepada siapa pun.`;
+    const message = `Kode OTP Anda adalah ${otpCode}. Kode ini akan kadaluwarsa dalam 5 menit. Jangan bagikan kode ini kepada siapa pun.`;
     const htmlMessage = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
         <h2>Permintaan Reset Password HealthyUp</h2>
         <p>Kode OTP Anda adalah:</p>
         <h1 style="background: #f4f4f4; padding: 10px; display: inline-block; letter-spacing: 5px;">${otpCode}</h1>
-        <p style="color: red; font-size: 12px;">*Kode ini hanya berlaku selama 1 menit.</p>
+        <p style="color: red; font-size: 12px;">*Kode ini hanya berlaku selama 5 menit.</p>
       </div>
     `;
 
