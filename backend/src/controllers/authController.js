@@ -9,6 +9,7 @@ import {
 import AuthService from '../services/authService.js';
 import { generateToken } from '../utils/generateToken.js';
 
+// test
 class AuthController {
   /**
    * * @desc    Sign up user account
