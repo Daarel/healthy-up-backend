@@ -19,7 +19,7 @@ router.patch(
   '/:id/status',
   protect,
   upload.single('proofImage'),
-  MissionController.updateStatus,
+  MissionController.updateMissionStatus,
 );
 
 router.patch(
