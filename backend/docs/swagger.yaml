@@ -1574,7 +1574,7 @@ paths:
                               example: '2026-06-01T00:00:00.000Z'
                             status:
                               type: string
-                              enum: [assigned, in_progress, completed, failed]
+                              enum: [assigned, completed, failed]
                               example: 'assigned'
                             verificationStatus:
                               type: string
@@ -1792,7 +1792,7 @@ paths:
   /missions/{id}/status:
     patch:
       summary: Memperbarui status misi (Menyelesaikan misi)
-      description: Mengubah status misi menjadi in_progress, completed, atau failed. Jika status diubah menjadi completed, sistem akan secara otomatis menyuntikkan XP dan Poin ke akun pengguna.
+      description: Mengubah status misi menjadi completed, atau failed. Jika status diubah menjadi completed, sistem akan secara otomatis menyuntikkan XP dan Poin ke akun pengguna.
       tags: [Missions]
       security:
         - bearerAuth: []
@@ -1814,7 +1814,7 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [in_progress, completed, failed]
+                  enum: [completed, failed]
                   example: 'completed'
                 proofImagePath:
                   type: string
@@ -1861,7 +1861,7 @@ paths:
                     status: fail
                     errors:
                       - field: status
-                        message: "Status hanya boleh 'in_progress', 'completed', atau 'failed'"
+                        message: "Status hanya boleh 'completed' atau 'failed'"
         '401':
           description: Sesi tidak valid atau tidak ada token
         '404':

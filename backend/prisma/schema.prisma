@@ -19,7 +19,6 @@ enum ActivityCategory {
 
 enum MissionStatus {
   assigned
-  in_progress
   completed
   failed
 }

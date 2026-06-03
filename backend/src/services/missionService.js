@@ -102,6 +102,7 @@ class MissionService {
           icon: quest.icon || 'activity',
           difficultyScore: quest.difficultyScore || 1,
           caloriesImpact: quest.caloriesImpact || 0,
+          status: "assigned",
           scheduledDate: today,
           xpReward: quest.xpReward,
           pointsReward: quest.pointsReward,
