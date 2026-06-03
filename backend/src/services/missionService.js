@@ -76,8 +76,8 @@ class MissionService {
       factualBMI: Number(profile.factualBMI),
       heightCm: Number(profile.heightCm),
       weightKg: Number(profile.weightKg),
-      Gender: profile.gender === 'male' ? 'Male' : 'Female',
-      Age: profile.age,
+      gender: profile.gender === 'male' ? 'Male' : 'Female',
+      age: profile.age,
     };
 
     try {
@@ -93,20 +93,18 @@ class MissionService {
 
       const newMissions = [];
 
-      gamification_data.schedule.forEach((scheduleItem) => {
-        scheduleItem.quests.forEach((quest) => {
-          newMissions.push({
-            userId: userId,
-            title: quest.quest_name,
-            description: quest.description,
-            category: categoryEnum,
-            icon: quest.icon,
-            difficultyScore: quest.difficultyScore,
-            caloriesImpact: quest.caloriesImpact,
-            scheduledDate: today,
-            xpReward: quest.xpReward,
-            pointsReward: quest.pointsReward,
-          });
+      gamification_data.quests.forEach((quest) => {
+        newMissions.push({
+          userId: userId,
+          title: quest.quest_name,
+          description: quest.description,
+          category: quest.category.toLowerCase(),
+          icon: quest.icon || 'activity',
+          difficultyScore: quest.difficultyScore || 1,
+          caloriesImpact: quest.caloriesImpact || 0,
+          scheduledDate: today,
+          xpReward: quest.xpReward,
+          pointsReward: quest.pointsReward,
         });
       });
 
@@ -121,7 +119,7 @@ class MissionService {
           }),
         ],
         {
-          maxWait: 15000,
+          maxWait: 25000,
           timeout: 30000,
         },
       );
