@@ -65,19 +65,23 @@ class HealthProfileService {
         },
       }),
 
-      prisma.calorieLog.aggregate({
-        _sum: { calories: true },
+      prisma.mission.aggregate({
+        _sum: { caloriesImpact: true },
         where: {
           userId,
-          loggedAt: { gte: startOfToday },
+          category: 'nutrition',
+          status: 'completed',
+          completedAt: { gte: startOfToday },
         },
       }),
 
-      prisma.calorieLog.aggregate({
-        _sum: { calories: true },
+      prisma.mission.aggregate({
+        _sum: { caloriesImpact: true },
         where: {
           userId,
-          loggedAt: { gte: startOfWeek },
+          category: 'nutrition',
+          status: 'completed',
+          completedAt: { gte: startOfWeek },
         },
       }),
 
@@ -89,12 +93,12 @@ class HealthProfileService {
 
     return {
       caloriesBurned: {
-        today: dailyBurned._sum.caloriesImpact || 0,
-        weekly: weeklyBurned._sum.caloriesImpact || 0,
+        today: Math.abs(dailyBurned._sum.caloriesImpact || 0),
+        weekly: Math.abs(weeklyBurned._sum.caloriesImpact || 0),
       },
       caloriesIntake: {
-        today: dailyIntake._sum.calories || 0,
-        weekly: weeklyIntake._sum.calories || 0,
+        today: dailyIntake._sum.caloriesImpact || 0,
+        weekly: weeklyIntake._sum.caloriesImpact || 0,
       },
       profile: healthProfile,
     };
